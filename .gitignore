@@ -1,0 +1,9 @@
+Makefile
+config.log
+config.status
+exampleProgram/.deps
+exampleProgram/Makefile
+include/Makefile
+libdigitizersim/.deps
+libdigitizersim/Makefile
+libtool

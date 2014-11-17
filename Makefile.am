@@ -1,0 +1,1 @@
+SUBDIRS=libdigitizersim include exampleProgram
