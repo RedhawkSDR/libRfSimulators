@@ -6,6 +6,12 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_CANONICAL_SYSTEM
 
+AX_BOOST_BASE([1.41])
+AX_BOOST_SYSTEM
+AX_BOOST_FILESYSTEM
+AC_LANG_PUSH([C++])
+AC_CHECK_HEADERS([tinyxml.h],,[AC_MSG_ERROR(tinyxml-devel must be installed)])
+
 dnl Initialize automake
 AM_INIT_AUTOMAKE
 

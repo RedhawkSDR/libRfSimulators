@@ -9,14 +9,14 @@ depcomp
 exampleProgram/.libs
 exampleProgram/Makefile.in
 exampleProgram/exampleProgram
-exampleProgram/exampleProgram-exampleProgram.o
+exampleProgram/*.o
 include/Makefile.in
 install-sh
 src/.libs
 src/Makefile.in
-src/libdigitizersim.la
-src/libdigitizersim_la-libdigitizersim.lo
-src/libdigitizersim_la-libdigitizersim.o
+src/*.la
+src/*.lo
+src/*.o
 ltmain.sh
 Makefile
 config.log
@@ -27,3 +27,5 @@ include/Makefile
 src/.deps
 src/Makefile
 libtool
+acinclude.m4
+m4

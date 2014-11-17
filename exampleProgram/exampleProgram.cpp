@@ -14,8 +14,18 @@
  */
 
 #include "libdigitizersim.h"
+#include "boost/filesystem.hpp"
+using namespace boost::filesystem;
 
 int main(void) {
-  print_hello();
+
+	path p("/tmp/testDir");
+
+
+	DigitizerSimulator digSim;
+	digSim.print_hello();
+
+	digSim.init(p);
+
   return 0;
 }

@@ -8,12 +8,12 @@ lib_LTLIBRARIES = libdigitizersim.la
 # Build information for each library
 
 # Sources for libdigitizersim
-libdigitizersim_la_SOURCES = libdigitizersim.cpp
+libdigitizersim_la_SOURCES = libdigitizersim.cpp Transmitter.cpp
 
 # Linker options libTestProgram
-libdigitizersim_la_LDFLAGS = 
+libdigitizersim_la_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) -ltinyxml
 
 # Compiler options. Here we are adding the include directory
 # to be searched for headers included in the source code.
-libdigitizersim_la_CPPFLAGS = -I$(top_srcdir)/include
+libdigitizersim_la_CPPFLAGS = -I$(top_srcdir)/include $(BOOST_CPPFLAGS)
 
