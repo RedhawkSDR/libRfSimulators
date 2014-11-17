@@ -19,7 +19,7 @@ noinst_PROGRAMS=exampleProgram
 exampleProgram_SOURCES= exampleProgram.cpp
 
 # Linker options for a.out
-exampleProgram_LDFLAGS = $(top_srcdir)/libdigitizersim/libdigitizersim.la
+exampleProgram_LDFLAGS = $(top_srcdir)/src/libdigitizersim.la
 
 # Compiler options for a.out
 exampleProgram_CPPFLAGS = -I$(top_srcdir)/include
