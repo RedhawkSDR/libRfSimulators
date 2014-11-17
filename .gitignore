@@ -18,3 +18,12 @@ libdigitizersim/libdigitizersim.la
 libdigitizersim/libdigitizersim_la-libdigitizersim.lo
 libdigitizersim/libdigitizersim_la-libdigitizersim.o
 ltmain.sh
+Makefile
+config.log
+config.status
+exampleProgram/.deps
+exampleProgram/Makefile
+include/Makefile
+libdigitizersim/.deps
+libdigitizersim/Makefile
+libtool
