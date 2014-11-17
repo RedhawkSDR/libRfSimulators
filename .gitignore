@@ -12,11 +12,11 @@ exampleProgram/exampleProgram
 exampleProgram/exampleProgram-exampleProgram.o
 include/Makefile.in
 install-sh
-libdigitizersim/.libs
-libdigitizersim/Makefile.in
-libdigitizersim/libdigitizersim.la
-libdigitizersim/libdigitizersim_la-libdigitizersim.lo
-libdigitizersim/libdigitizersim_la-libdigitizersim.o
+src/.libs
+src/Makefile.in
+src/libdigitizersim.la
+src/libdigitizersim_la-libdigitizersim.lo
+src/libdigitizersim_la-libdigitizersim.o
 ltmain.sh
 Makefile
 config.log
@@ -24,6 +24,6 @@ config.status
 exampleProgram/.deps
 exampleProgram/Makefile
 include/Makefile
-libdigitizersim/.deps
-libdigitizersim/Makefile
+src/.deps
+src/Makefile
 libtool

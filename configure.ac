@@ -21,6 +21,6 @@ AC_PROG_LIBTOOL
 
 AC_CONFIG_FILES(Makefile
                 exampleProgram/Makefile
-                libdigitizersim/Makefile
+                src/Makefile
                 include/Makefile)
 AC_OUTPUT

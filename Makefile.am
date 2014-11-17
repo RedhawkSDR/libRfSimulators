@@ -1,1 +1,1 @@
-SUBDIRS=libdigitizersim include exampleProgram
+SUBDIRS=src include exampleProgram
