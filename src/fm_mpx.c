@@ -128,7 +128,8 @@ int fm_mpx_open(char *filename, size_t len) {
         // when applying the filter
 
         // Only store half of the filter since it is symmetric
-        for(int i=1; i<FIR_HALF_SIZE; i++) {
+        int i;
+        for(i=1; i<FIR_HALF_SIZE; i++) {
             low_pass_fir[FIR_HALF_SIZE-1-i] = 
                 sin(2 * PI * cutoff_freq * i / 228000) / (PI * i)      // sinc
                 * (.54 - .46 * cos(2*PI * (i+FIR_HALF_SIZE) / (2*FIR_HALF_SIZE)));
@@ -163,13 +164,14 @@ int fm_mpx_get_samples(float *mpx_buffer) {
     get_rds_samples(mpx_buffer, length);
 
     if(inf  == NULL) return 0; // if there is no audio, stop here
-    
-    for(int i=0; i<length; i++) {
+    int i; 
+    for(i=0; i<length; i++) {
         if(audio_pos >= downsample_factor) {
             audio_pos -= downsample_factor;
             
             if(audio_len == 0) {
-                for(int j=0; j<2; j++) { // one retry
+                int j;
+                for(j=0; j<2; j++) { // one retry
                     audio_len = sf_read_float(inf, audio_buffer, length);
                     if (audio_len < 0) {
                         fprintf(stderr, "Error reading audio\n");
@@ -215,7 +217,8 @@ int fm_mpx_get_samples(float *mpx_buffer) {
         float out_stereo = 0;
         int ifbi = fir_index;  // ifbi = increasing FIR Buffer Index
         int dfbi = fir_index;  // dfbi = decreasing FIR Buffer Index
-        for(int fi=0; fi<FIR_HALF_SIZE; fi++) {  // fi = Filter Index
+        int fi;
+        for(fi=0; fi<FIR_HALF_SIZE; fi++) {  // fi = Filter Index
             dfbi--;
             if(dfbi < 0) dfbi = FIR_SIZE-1;
             out_mono += 

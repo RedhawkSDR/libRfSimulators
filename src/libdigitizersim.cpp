@@ -1,9 +1,6 @@
-#include <iostream>
-#include <stdio.h>
-#include "libdigitizersim.h"
-#include "tinyxml.h"
-
 using namespace std;
+
+#include "libdigitizersim.h"
 
 int DigitizerSimulator::init(boost::filesystem::path path) {
 
@@ -37,20 +34,37 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	    TiXmlElement *pRoot, *pParm;
 	    pRoot = doc.FirstChildElement("TxProps");
 
+
 	    pParm = pRoot->FirstChildElement("FileName");
-	    tx.setFilePath(path(pParm->GetText()));
+	    if (not pParm) {
+	    	std::cerr << "FileName element is required within file: " << filePath.string() << std::endl;
+	    	return -1;
+	    }
+
+		tx.setFilePath(path(pParm->GetText()));
 
 	    pParm = pRoot->FirstChildElement("CenterFrequency");
+
+	    if (not pParm) {
+			std::cerr << "CenterFrequency element is required within file: " << filePath.string() << std::endl;
+			return -1;
+	    }
+
 	    tx.setCenterFrequency(atof(pParm->GetText()));
 
 		pParm = pRoot->FirstChildElement("RDS");
-		tx.setRdsText(pParm->GetText());
+
+		if (pParm)
+			tx.setRdsText(pParm->GetText());
+		else
+			tx.setRdsText(DEFAULT_RDS_TEXT);
 
 		std::cout << "Read XML File" << std::endl;
 		std::cout << tx << std::endl;
 
 
 	} else {
+		std::cerr << "Malformed xml file: " << filePath.string() << std::endl;
 		return -1;
 	}
 

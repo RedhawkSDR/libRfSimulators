@@ -9,8 +9,10 @@ AC_CANONICAL_SYSTEM
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
+AX_BOOST_THREAD
 AC_LANG_PUSH([C++])
 AC_CHECK_HEADERS([tinyxml.h],,[AC_MSG_ERROR(tinyxml-devel must be installed)])
+AC_CHECK_HEADERS([sndfile.h],,[AC_MSG_ERROR(libsndfile-devel must be installed)])
 
 dnl Initialize automake
 AM_INIT_AUTOMAKE

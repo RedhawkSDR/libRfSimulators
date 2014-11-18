@@ -60,8 +60,8 @@ uint16_t offset_words[] = {0x0FC, 0x198, 0x168, 0x1B4};
 /* Classical CRC computation */
 uint16_t crc(uint16_t block) {
     uint16_t crc = 0;
-    
-    for(int j=0; j<BLOCK_SIZE; j++) {
+    int j; 
+    for(j=0; j<BLOCK_SIZE; j++) {
         int bit = (block & MSB_BIT) != 0;
         block <<= 1;
 
@@ -145,14 +145,16 @@ void get_rds_group(int *buffer) {
     }
     
     // Calculate the checkword for each block and emit the bits
-    for(int i=0; i<GROUP_LENGTH; i++) {
+    int i;
+    for(i=0; i<GROUP_LENGTH; i++) {
         uint16_t block = blocks[i];
         uint16_t check = crc(block) ^ offset_words[i];
-        for(int j=0; j<BLOCK_SIZE; j++) {
+        int j;
+        for(j=0; j<BLOCK_SIZE; j++) {
             *buffer++ = ((block & (1<<(BLOCK_SIZE-1))) != 0);
             block <<= 1;
         }
-        for(int j=0; j<POLY_DEG; j++) {
+        for(j=0; j<POLY_DEG; j++) {
             *buffer++= ((check & (1<<(POLY_DEG-1))) != 0);
             check <<= 1;
         }
@@ -178,8 +180,8 @@ void get_rds_samples(float *buffer, int count) {
 
     static int in_sample_index = 0;
     static int out_sample_index = SAMPLE_BUFFER_SIZE-1;
-        
-    for(int i=0; i<count; i++) {
+    int i;    
+    for(i=0; i<count; i++) {
         if(sample_count >= SAMPLES_PER_BIT) {
             if(bit_pos >= BITS_PER_GROUP) {
                 get_rds_group(bit_buffer);
@@ -195,8 +197,8 @@ void get_rds_samples(float *buffer, int count) {
 
             float *src = waveform_biphase;
             int idx = in_sample_index;
-
-            for(int j=0; j<FILTER_SIZE; j++) {
+            int j;
+            for(j=0; j<FILTER_SIZE; j++) {
                 float val = (*src++);
                 if(inverting) val = -val;
                 sample_buffer[idx++] += val;
@@ -238,14 +240,16 @@ void set_rds_pi(uint16_t pi_code) {
 
 void set_rds_rt(char *rt) {
     strncpy(rds_params.rt, rt, 64);
-    for(int i=0; i<64; i++) {
+    int i;
+    for(i=0; i<64; i++) {
         if(rds_params.rt[i] == 0) rds_params.rt[i] = 32;
     }
 }
 
 void set_rds_ps(char *ps) {
     strncpy(rds_params.ps, ps, 8);
-    for(int i=0; i<8; i++) {
+    int i;
+    for(i=0; i<8; i++) {
         if(rds_params.ps[i] == 0) rds_params.ps[i] = 32;
     }
 }

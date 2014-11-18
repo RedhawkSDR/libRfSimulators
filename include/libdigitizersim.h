@@ -3,6 +3,10 @@
 
 #include "boost/filesystem.hpp"
 #include "Transmitter.h"
+#include <iostream>
+#include <stdio.h>
+#include "tinyxml.h"
+#include "SimDefaults.h"
 
 using namespace boost::filesystem;
 
