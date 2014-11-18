@@ -61,26 +61,4 @@ extern int fm_mpx_open(char *filename, size_t len, struct fm_mpx_struct * fm_mpx
 extern int fm_mpx_get_samples(float *mpx_buffer, struct rds_struct* rds_params, struct fm_mpx_struct * fm_mpx_status);
 extern int fm_mpx_close(struct fm_mpx_struct * fm_mpx_status);
 
-
-/**
- * TODO: Initialize me to these values
-struct fm_mpx_struct {
-	size_t length;
-	// coefficients of the low-pass FIR filter
-	float low_pass_fir[FIR_HALF_SIZE];
-	int phase_38 = 0;
-	int phase_19 = 0;
-	float downsample_factor;
-	float *audio_buffer;
-	int audio_index = 0;
-	int audio_len = 0;
-	float audio_pos;
-	float fir_buffer_mono[FIR_SIZE] = {0};
-	float fir_buffer_stereo[FIR_SIZE] = {0};
-	int fir_index = 0;
-	int channels;
-	SNDFILE *inf;
-
-};
-*/
 #endif /* FM_MPX_H_ */

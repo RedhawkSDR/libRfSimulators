@@ -25,8 +25,10 @@ public:
 	Transmitter();
 	void setCenterFrequency(float centerFreqeuncy);
 	void setFilePath(path filePath);
+	path getFilePath();
 	void setRdsText(std::string rdsText);
 	virtual ~Transmitter();
+	std::vector<float>& getData();
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
 	void start(int numSamples);
 	void join();
@@ -41,6 +43,7 @@ private:
 	int doWork();
 	std::vector<float> mpx_buffer;
 	rds_struct rds_status_struct;
+	fm_mpx_struct fm_mpx_status_struct;
 
 };
 

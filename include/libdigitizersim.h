@@ -1,12 +1,15 @@
 #ifndef libdigitizersim_H
 #define libdigitizersim_H
 
-#include "boost/filesystem.hpp"
 #include "Transmitter.h"
+#include "boost/filesystem.hpp"
 #include <iostream>
 #include <stdio.h>
 #include "tinyxml.h"
 #include "SimDefaults.h"
+#include "CallbackInterface.h"
+#include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 using namespace boost::filesystem;
 
@@ -15,11 +18,13 @@ public:
 	void print_hello ();
 
 	/**
-	 * Initialize the simulator by passing it a boost filesystem path containing
-	 * the XML and wav files to be used in the simulation.
+	 * Initializes the simulator.
+	 * Input:
+	 *  cfgFilePath - The path to a folder on the system that contains the XML configuration files as well as the wav files
+	 *  userClass - A pointer to the class which implements the CallbackInterface used when data is available.
 	 * Returns 0 on success, -1 on failure.
 	 */
-	int init(path path);
+	int init(path cfgFilePath, CallbackInterface * userClass);
 
 	/**
 	 * Takes in a gain value, 0-11.  Units are in dB.
@@ -41,15 +46,15 @@ public:
 	 */
 	int setSampleRate(float rate);
 
-	/**
-	 * Gets a buffer of samples from the device.
-	 * The size of the buffer maxs out at 2 Million samples.  The minimum
-	 */
-	int getSamples(std::vector<float> &samples);
+	void connectCallback(CallbackInterface * userClass);
+
+	void start();
 
 private:
 	int loadCfgFile(path filPath);
-	std::vector<Transmitter> transmitters;
+	std::vector<Transmitter*> transmitters;
+	CallbackInterface *userClass;
+	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
 };
 
 #endif
