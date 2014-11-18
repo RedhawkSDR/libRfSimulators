@@ -24,11 +24,22 @@
 
 #include <stdint.h>
 
-extern void get_rds_samples(float *buffer, int count);
-extern void set_rds_pi(uint16_t pi_code);
-extern void set_rds_rt(char *rt);
-extern void set_rds_ps(char *ps);
-extern void set_rds_ta(int ta);
 
+#define RT_LENGTH 64
+#define PS_LENGTH 8
+#define GROUP_LENGTH 4
+
+struct rds_struct {
+    uint16_t pi;
+    int ta;
+    char ps[PS_LENGTH];
+    char rt[RT_LENGTH];
+};
+
+
+extern void get_rds_samples(float *buffer, int count, struct rds_struct * rds_params);
+extern void set_rds_rt(char *rt, struct rds_struct* rds_params);
+extern void set_rds_ps(char *ps, struct rds_struct* rds_params);
+extern void set_rds_ta(int ta);
 
 #endif /* RDS_H */

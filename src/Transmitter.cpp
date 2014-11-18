@@ -6,11 +6,6 @@
 
 #include "Transmitter.h"
 
-extern "C" {
-#include "rds.h"
-#include "fm_mpx.h"
-}
-
 
 Transmitter::Transmitter() {
 	this->centerFrequency = -1;
@@ -45,14 +40,15 @@ void Transmitter::join() {
 int Transmitter::init(int numSamples) {
 	this->numSamples = numSamples;
 
-	set_rds_pi(0x1234);
-	set_rds_ps(const_cast<char *> (rdsText.c_str()));
-	set_rds_rt(const_cast<char *> (rdsText.c_str()));
+	rds_status_struct.pi = 0x1234;
+	set_rds_ps(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
+	set_rds_rt(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
 
-    if(fm_mpx_open(const_cast<char *> (filePath.string().c_str()), this->numSamples) != 0) {
-        std::cerr << "Could not setup FM mulitplex generator." << std::endl;
-        return -1;
-    }
+
+//    if(fm_mpx_open(const_cast<char *> (filePath.string().c_str()), this->numSamples) != 0) {
+//        std::cerr << "Could not setup FM mulitplex generator." << std::endl;
+//        return -1;
+//    }
 
     this->mpx_buffer.clear();
     this->mpx_buffer.resize(numSamples);
@@ -68,15 +64,15 @@ int Transmitter::init(int numSamples) {
  * 3. Add the pilot tone
  */
 int Transmitter::doWork() {
-	if( fm_mpx_get_samples(&mpx_buffer[0]) < 0 ) {
-		std::cerr << "Error occurred adding RDS data to sound file." << std::endl;
-		return -1;
-	}
+//	if( fm_mpx_get_samples(&mpx_buffer[0]) < 0 ) {
+//		std::cerr << "Error occurred adding RDS data to sound file." << std::endl;
+//		return -1;
+//	}
 
-	// scale samples
-	for(int i = 0; i < numSamples; i++) {
-		mpx_buffer[i] /= 10.;
-	}
+//	// scale samples
+//	for(int i = 0; i < numSamples; i++) {
+//		mpx_buffer[i] /= 10.;
+//	}
 
     return 0;
 }

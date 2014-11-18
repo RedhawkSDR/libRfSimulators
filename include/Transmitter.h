@@ -12,6 +12,10 @@
 #include <iostream>
 #include "boost/thread.hpp"
 
+extern "C" {
+#include "rds.h"
+#include "fm_mpx.h"
+}
 
 using namespace boost::filesystem;
 using namespace boost;
@@ -36,6 +40,7 @@ private:
 	int numSamples;
 	int doWork();
 	std::vector<float> mpx_buffer;
+	rds_struct rds_status_struct;
 
 };
 

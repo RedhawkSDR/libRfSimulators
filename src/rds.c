@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "rds.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -25,16 +26,6 @@
 #include <stdlib.h>
 #include "waveforms.h"
 
-#define RT_LENGTH 64
-#define PS_LENGTH 8
-#define GROUP_LENGTH 4
-
-struct {
-    uint16_t pi;
-    int ta;
-    char ps[PS_LENGTH];
-    char rt[RT_LENGTH];
-} rds_params = { 0 };
 /* Here, the first member of the struct must be a scalar to avoid a
    warning on -Wmissing-braces with GCC < 4.8.3 
    (bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53119)
@@ -117,25 +108,25 @@ int get_rds_ct_group(uint16_t *blocks) {
    pattern. 'ps_state' and 'rt_state' keep track of where we are in the PS (0A) sequence
    or RT (2A) sequence, respectively.
 */
-void get_rds_group(int *buffer) {
+void get_rds_group(int *buffer, struct rds_struct* rds_params) {
     static int state = 0;
     static int ps_state = 0;
     static int rt_state = 0;
-    uint16_t blocks[GROUP_LENGTH] = {rds_params.pi, 0, 0, 0};
+    uint16_t blocks[GROUP_LENGTH] = {rds_params->pi, 0, 0, 0};
     
     // Generate block content
     if(! get_rds_ct_group(blocks)) { // CT (clock time) has priority on other group types
         if(state < 4) {
             blocks[1] = 0x0400 | ps_state;
-            if(rds_params.ta) blocks[1] |= 0x0010;
+            if(rds_params->ta) blocks[1] |= 0x0010;
             blocks[2] = 0xCDCD;     // no AF
-            blocks[3] = rds_params.ps[ps_state*2]<<8 | rds_params.ps[ps_state*2+1];
+            blocks[3] = rds_params->ps[ps_state*2]<<8 | rds_params->ps[ps_state*2+1];
             ps_state++;
             if(ps_state >= 4) ps_state = 0;
         } else { // state == 5
             blocks[1] = 0x2400 | rt_state;
-            blocks[2] = rds_params.rt[rt_state*4+0]<<8 | rds_params.rt[rt_state*4+1];
-            blocks[3] = rds_params.rt[rt_state*4+2]<<8 | rds_params.rt[rt_state*4+3];
+            blocks[2] = rds_params->rt[rt_state*4+0]<<8 | rds_params->rt[rt_state*4+1];
+            blocks[3] = rds_params->rt[rt_state*4+2]<<8 | rds_params->rt[rt_state*4+3];
             rt_state++;
             if(rt_state >= 16) rt_state = 0;
         }
@@ -166,7 +157,7 @@ void get_rds_group(int *buffer) {
    envelope with a 57 kHz carrier, which is very efficient as 57 kHz is 4 times the
    sample frequency we are working at (228 kHz).
  */
-void get_rds_samples(float *buffer, int count) {
+void get_rds_samples(float *buffer, int count, struct rds_struct* rds_params) {
     static int bit_buffer[BITS_PER_GROUP];
     static int bit_pos = BITS_PER_GROUP;
     static float sample_buffer[SAMPLE_BUFFER_SIZE] = {0};
@@ -184,7 +175,7 @@ void get_rds_samples(float *buffer, int count) {
     for(i=0; i<count; i++) {
         if(sample_count >= SAMPLES_PER_BIT) {
             if(bit_pos >= BITS_PER_GROUP) {
-                get_rds_group(bit_buffer);
+                get_rds_group(bit_buffer, rds_params);
                 bit_pos = 0;
             }
             
@@ -234,26 +225,19 @@ void get_rds_samples(float *buffer, int count) {
     }
 }
 
-void set_rds_pi(uint16_t pi_code) {
-    rds_params.pi = pi_code;
-}
-
-void set_rds_rt(char *rt) {
-    strncpy(rds_params.rt, rt, 64);
+void set_rds_rt(char *rt, struct rds_struct* rds_params) {
+    strncpy(rds_params->rt, rt, 64);
     int i;
     for(i=0; i<64; i++) {
-        if(rds_params.rt[i] == 0) rds_params.rt[i] = 32;
+        if(rds_params->rt[i] == 0) rds_params->rt[i] = 32;
     }
 }
 
-void set_rds_ps(char *ps) {
-    strncpy(rds_params.ps, ps, 8);
+void set_rds_ps(char *ps, struct rds_struct* rds_params) {
+    strncpy(rds_params->ps, ps, 8);
     int i;
     for(i=0; i<8; i++) {
-        if(rds_params.ps[i] == 0) rds_params.ps[i] = 32;
+        if(rds_params->ps[i] == 0) rds_params->ps[i] = 32;
     }
 }
 
-void set_rds_ta(int ta) {
-    rds_params.ta = ta;
-}
