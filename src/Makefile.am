@@ -11,7 +11,7 @@ lib_LTLIBRARIES = libdigitizersim.la
 libdigitizersim_la_SOURCES = libdigitizersim.cpp Transmitter.cpp fm_mpx.c rds.c waveforms.c
 
 # Linker options libTestProgram
-libdigitizersim_la_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -ltinyxml -lsndfile
+libdigitizersim_la_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -ltinyxml -lsndfile -llog4cxx
 
 # Compiler options. Here we are adding the include directory
 # to be searched for headers included in the source code.

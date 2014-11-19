@@ -13,6 +13,7 @@ AX_BOOST_THREAD
 AC_LANG_PUSH([C++])
 AC_CHECK_HEADERS([tinyxml.h],,[AC_MSG_ERROR(tinyxml-devel must be installed)])
 AC_CHECK_HEADERS([sndfile.h],,[AC_MSG_ERROR(libsndfile-devel must be installed)])
+AC_CHECK_HEADERS([log4cxx/log4cxx.h],,[AC_MSG_ERROR(log4cxx-devel must be installed)])
 
 dnl Initialize automake
 AM_INIT_AUTOMAKE

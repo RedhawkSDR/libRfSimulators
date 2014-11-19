@@ -44,7 +44,7 @@ private:
 	std::vector<float> mpx_buffer;
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
-
+	bool initilized;
 };
 
 #endif /* TRANSMITTER_H_ */

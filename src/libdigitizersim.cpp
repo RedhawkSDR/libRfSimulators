@@ -2,13 +2,42 @@ using namespace std;
 
 #include "libdigitizersim.h"
 #include "boost/bind.hpp"
+#include "DigitizerSimLogger.h"
+#include "boost/current_function.hpp"
 
 #define CALLBACK_INTERVAL 250 // TODO: Make this configurable.
 #define DATA_SIZE 1024 // TODO: Make this configurable.
 
-int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass) {
+int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
+	// Set up a simple configuration that logs on the console.
+	BasicConfigurator::configure();
+
+	if (logLevel < 0)
+		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
+
+	switch ( logLevel )
+	{
+	 case 0:
+		 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getError());
+		break;
+	 case 1:
+		 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
+		break;
+	 case 2:
+		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
+		break;
+	 case 3:
+		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getTrace());
+		break;
+	}
+
+	if (logLevel > 3)
+		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
+
+	TRACE("Entered Method");
+
 	this->userClass = userClass;
-//	transmitters.clear();
+	transmitters.clear();
 
 	directory_iterator end_itr;
 	// cycle through the directory and save all the XML configurations.
@@ -21,32 +50,39 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass) {
 			}
 		}
 	}
+
+	TRACE("Leaving Method");
 	return 0;
 }
 
 
 void DigitizerSimulator::print_hello(){
-  printf("Hi Youssef!\n");
+	TRACE("Entered Method");
+	printf("Hi Youssef!\n");
+	TRACE("Leaving Method");
 }
 
 
 void DigitizerSimulator::start() {
-	std::cout << "Entered start method" << std::endl;
+	TRACE("Entered Method");
 	boost::asio::io_service io;
-	std::cout << "Setting alarm" << std::endl;
+
+	TRACE("Setting the boost asio deadline_timer");
 	boost::asio::deadline_timer alarm(io, boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 
-	std::cout << "Binding alarm" << std::endl;
+	TRACE("Binding deadline_timer to dataGrab method");
 	alarm.async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, &alarm));
 
-	std::cout << "Running the io_service" << std::endl;
+	TRACE("Running the asio io-service");
 	io.run();
+
+	TRACE("Leaving Method");
 }
 
 void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
-	std::cout << "Entered the dataGrab method" << std::endl;
+	TRACE("Entered Method");
 
-	std::cout << "Reseting alarm" << std::endl;
+	TRACE("Reseting alarm");
 	// Reset timer
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 
@@ -55,36 +91,43 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 
 	int i;
 	// Kick off all the worker threads
-	std::cout << "Starting all of the worker threads" << std::endl;
+	TRACE("Starting all of the worker threads");
 	for (i = 0; i < transmitters.size(); ++i) {
 		transmitters[i]->start(DATA_SIZE);
 	}
 
 	// Join them back up.
-	std::cout << "Joining all the worker threads back to the main process" << std::endl;
+	TRACE("Joining all the worker threads back to the main process");
 	for (i = 0; i < transmitters.size(); ++i) {
 		transmitters[i]->join();
 	}
 
 	// Collect the data and add it to the return vector
-	std::cout << "Collecting data" << std::endl;
+	TRACE("Collecting data");
 	for (i = 0; i < transmitters.size(); ++i) {
-		std::cout << "Retrieving datapoints: " << transmitters[i]->getData().size() << std::endl;
 		std::vector<float> txData = transmitters[i]->getData();
 
 		if (txData.size() != retVec.size()) {
-			std::cerr << "Vector size missmatch on transmitter: " << transmitters[i]->getFilePath().string() << std::endl;
+			WARN("Vector size miss-match on transmitter: " << transmitters[i]->getFilePath().string())
+			WARN("Vector size requested: " << retVec.size());
+			WARN("Vector size provided: " << txData.size());
 		} else {
+			TRACE("Combining data with current collection");
 			std::transform(retVec.begin(), retVec.end(), txData.begin(), retVec.begin(), std::plus<float>());
 		}
 
 	}
 
-	std::cout << "Calling the users data delivery method" << std::endl;
+	// While it would appear this should be in its own thread, the dataGrab method is in its own thread that gets respawned
+	// so, worst case scenario the users class causes a build up of threads and the system runs out of resources...
+	TRACE("Delivering data to user class.");
 	userClass->dataDelivery(retVec);
+
+	TRACE("Leaving Method");
 }
 
 int DigitizerSimulator::loadCfgFile(path filePath) {
+	TRACE("Entered Method");
 
 	TiXmlDocument doc(filePath.string());
 	if(doc.LoadFile())
@@ -98,7 +141,8 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 
 	    pParm = pRoot->FirstChildElement("FileName");
 	    if (not pParm) {
-	    	std::cerr << "FileName element is required within file: " << filePath.string() << std::endl;
+	    	ERROR("FileName element is required within file: " << filePath.string());
+	    	TRACE("Leaving Method");
 	    	delete(tx);
 	    	return -1;
 	    }
@@ -106,7 +150,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	    path filepath = path(filePath.parent_path().string() + "/" + pParm->GetText());
 
 	    if (not exists(filepath)) {
-	    	std::cerr << "Could not locate file: " << filepath.string() << std::endl;
+	    	ERROR("Could not locate file: " << filepath.string());
 			delete(tx);
 			return -1;
 	    }
@@ -116,7 +160,8 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	    pParm = pRoot->FirstChildElement("CenterFrequency");
 
 	    if (not pParm) {
-			std::cerr << "CenterFrequency element is required within file: " << filePath.string() << std::endl;
+			ERROR("CenterFrequency element is required within file: " << filePath.string());
+			TRACE("Leaving Method");
 			delete(tx);
 			return -1;
 	    }
@@ -130,17 +175,22 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 		else
 			tx->setRdsText(DEFAULT_RDS_TEXT);
 
-		transmitters.push_back(tx);
+		if (tx->init(DATA_SIZE) != 0) {
+			ERROR("Initialization of transmitter failed!")
+			TRACE("Leaving Method");
+			return -1;
+		}
 
-		std::cout << "Read XML File" << std::endl;
-		std::cout << *tx << std::endl;
+		transmitters.push_back(tx);
+		TRACE("Stored following: " << *tx);
 
 
 	} else {
-		std::cerr << "Malformed xml file: " << filePath.string() << std::endl;
+		ERROR("Malformed xml file: " << filePath.string());
+		TRACE("Leaving Method");
 		return -1;
 	}
 
-
+	TRACE("Leaving Method");
 	return 0;
 }

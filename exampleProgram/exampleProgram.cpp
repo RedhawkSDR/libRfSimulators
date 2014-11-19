@@ -38,12 +38,11 @@ int main(void) {
 	DigitizerSimulator digSim;
 	digSim.print_hello();
 
-	digSim.init(p, &callback);
+	digSim.init(p, &callback, 5);
 
 	digSim.start();
-	std::cout << "Test3" << std::endl;
 
-	sleep(5);
+	sleep(1);
 
   return 0;
 }
