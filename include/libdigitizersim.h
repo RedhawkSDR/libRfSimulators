@@ -15,6 +15,8 @@ using namespace boost::filesystem;
 
 class DigitizerSimulator {
 public:
+	DigitizerSimulator();
+	~DigitizerSimulator();
 	void print_hello ();
 
 	/**
@@ -51,11 +53,16 @@ public:
 
 	void start();
 
+	void stop();
+
 private:
 	int loadCfgFile(path filPath);
 	std::vector<Transmitter*> transmitters;
 	CallbackInterface *userClass;
 	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
+	boost::asio::io_service io;
+	boost::asio::deadline_timer * alarm;
+	void _start();
 };
 
 #endif

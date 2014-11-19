@@ -16,7 +16,7 @@ noinst_PROGRAMS=exampleProgram
 # '_SOURCES' for example.
 
 # Sources for the a.out 
-exampleProgram_SOURCES= exampleProgram.cpp
+exampleProgram_SOURCES= exampleProgram.cpp SampleCallback.cpp
 
 # Linker options for a.out
 exampleProgram_LDFLAGS = $(top_srcdir)/src/libdigitizersim.la

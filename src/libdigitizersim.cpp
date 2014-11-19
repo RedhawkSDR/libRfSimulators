@@ -8,6 +8,15 @@ using namespace std;
 #define CALLBACK_INTERVAL 250 // TODO: Make this configurable.
 #define DATA_SIZE 1024 // TODO: Make this configurable.
 
+DigitizerSimulator::DigitizerSimulator() {
+
+}
+
+DigitizerSimulator::~DigitizerSimulator() {
+	if (alarm)
+		delete(alarm);
+}
+
 int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
 	// Set up a simple configuration that logs on the console.
 	BasicConfigurator::configure();
@@ -35,6 +44,7 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
 
 	TRACE("Entered Method");
+	alarm = new boost::asio::deadline_timer(io, boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 
 	this->userClass = userClass;
 	transmitters.clear();
@@ -63,19 +73,29 @@ void DigitizerSimulator::print_hello(){
 }
 
 
+void DigitizerSimulator::stop() {
+	TRACE("Entered Method");
+	io.stop();
+	TRACE("Leaving Method");
+}
+
+void DigitizerSimulator::_start() {
+	TRACE("Entered Method");
+	io.run();
+	TRACE("Leaving Method");
+}
+
 void DigitizerSimulator::start() {
 	TRACE("Entered Method");
-	boost::asio::io_service io;
-
 	TRACE("Setting the boost asio deadline_timer");
-	boost::asio::deadline_timer alarm(io, boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 
 	TRACE("Binding deadline_timer to dataGrab method");
-	alarm.async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, &alarm));
+	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
-	TRACE("Running the asio io-service");
-	io.run();
+	TRACE("Running the asio io-service in new thread");
 
+	// TODO: The internal start method isn't needed.  We should be able to call this classes io.run from this line.
+	boost::thread iot(boost::bind(&DigitizerSimulator::_start, this));
 	TRACE("Leaving Method");
 }
 
@@ -85,6 +105,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	TRACE("Reseting alarm");
 	// Reset timer
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
+	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
 	std::vector<float> retVec;
 	retVec.resize(DATA_SIZE, 0.0);

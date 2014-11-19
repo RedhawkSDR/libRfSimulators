@@ -15,18 +15,9 @@
 
 #include "libdigitizersim.h"
 #include "boost/filesystem.hpp"
-#include "CallbackInterface.h"
+#include "SampleCallback.h"
 
 using namespace boost::filesystem;
-
-class SampleCallback : public CallbackInterface {
-
-    void dataDelivery(std::vector<float> samples) {
-    	std::cout << "CallbackInterface Received: " << samples.size() << " data points" << std::endl;
-    }
-
-};
-
 
 int main(void) {
 
@@ -34,15 +25,17 @@ int main(void) {
 
 	path p("/tmp/testDir");
 
-
 	DigitizerSimulator digSim;
+
 	digSim.print_hello();
 
-	digSim.init(p, &callback, 5);
+	digSim.init(p, &callback, 10);
 
 	digSim.start();
 
-	sleep(1);
+	sleep(5);
+
+	digSim.stop();
 
   return 0;
 }
