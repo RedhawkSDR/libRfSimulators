@@ -17,7 +17,6 @@ class DigitizerSimulator {
 public:
 	DigitizerSimulator();
 	~DigitizerSimulator();
-	void print_hello ();
 
 	/**
 	 * Initializes the simulator.

@@ -11,6 +11,8 @@
 #include <string>
 #include <iostream>
 #include "boost/thread.hpp"
+#include "FrequencyModulator.h"
+#include <complex>
 
 extern "C" {
 #include "rds.h"
@@ -28,9 +30,9 @@ public:
 	path getFilePath();
 	void setRdsText(std::string rdsText);
 	virtual ~Transmitter();
-	std::vector<float>& getData();
+	std::vector< std::complex<float> >& getData();
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
-	void start(int numSamples);
+	void start();
 	void join();
 	int init(int numSamples);
 
@@ -42,9 +44,12 @@ private:
 	int numSamples;
 	int doWork();
 	std::vector<float> mpx_buffer;
+	std::vector< std::complex<float> > output_buffer;
+
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
+	FrequencyModulator fm;
 };
 
 #endif /* TRANSMITTER_H_ */

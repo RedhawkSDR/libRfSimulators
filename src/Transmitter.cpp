@@ -6,8 +6,14 @@
 
 #include "Transmitter.h"
 #include "DigitizerSimLogger.h"
+#include <math.h>
+#include "SimDefaults.h"
 
-Transmitter::Transmitter() {
+// From: http://gnuradio.org/redmine/projects/gnuradio/wiki/SignalProcessing
+// sensitivity = (2 * pi * max_deviation) / samp_rate
+
+Transmitter::Transmitter() : fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE) {
+
 	centerFrequency = -1;
 	rdsText = "REDHAWK Radio";
 	numSamples = -1;
@@ -19,11 +25,10 @@ Transmitter::Transmitter() {
 	fm_mpx_status_struct.audio_len = 0;
 	fm_mpx_status_struct.fir_index = 0;
 
-
 	unsigned int i;
 	for (i = 0; i < FIR_SIZE; i++) {
-		this->fm_mpx_status_struct.fir_buffer_mono[i] = 0;
-		this->fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
+		fm_mpx_status_struct.fir_buffer_mono[i] = 0;
+		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
 
 }
@@ -63,7 +68,7 @@ void Transmitter::setRdsText(std::string rdsText) {
  * TODO: This does not seem ideal.  The creation of a thread is time consuming and resource heavy.  We should have the thread in a wait state
  * and then on start it takes off.
  */
-void Transmitter::start(int numSamples) {
+void Transmitter::start() {
 	TRACE("Entered Method");
 
 	if (not initilized) {
@@ -94,15 +99,18 @@ int Transmitter::init(int numSamples) {
 	set_rds_rt(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
 
 
-	TRACE("Opening fm mpx file");
+	TRACE("Opening fm mpx file for " << filePath.string());
     if(fm_mpx_open(const_cast<char *> (filePath.string().c_str()), numSamples, &fm_mpx_status_struct) != 0) {
         ERROR("Could not setup FM mulitplex generator.");
         return -1;
     }
 
-    TRACE("Clearing MPX vector buffer and resizing for " << numSamples << " samples");
+    TRACE("Clearing MPX and output vector buffer and resizing for " << numSamples << " samples");
     mpx_buffer.clear();
     mpx_buffer.resize(numSamples);
+
+    output_buffer.clear();
+    output_buffer.resize(numSamples);
 
     initilized = true;
 	TRACE("Exited Method");
@@ -111,19 +119,22 @@ int Transmitter::init(int numSamples) {
 
 
 /**
+ * The data returned is coming in at 228000 from the fm / rds library.  If we return 1000 samples per call
+ * then we need to be called 228 times a second.
  * Here is what we need to do each pass
- * 1. Bring in the audio
- * 2. Add the RDS to the audio
- * 3. Add the pilot tone
+ * 1. Use the PiRds library to take in the file and prep for FM modulation (Add RDS & pilot tone & separate the stereo etc)
+ * 2. FM Modulae using the GNURadio impelmentation of FM modulation.
+ * 3. Frequency shift up to he appropriate location.
  */
 int Transmitter::doWork() {
 	TRACE("Entered Method");
 
-	TRACE("Receiving samples from fm_mpx_get_samples()");
+	TRACE("Receiving samples from fm_mpx_get_samples() for file: " );
 	if( fm_mpx_get_samples(&mpx_buffer[0], &rds_status_struct, &fm_mpx_status_struct) < 0 ) {
 		ERROR("Error occurred adding RDS data to sound file.");
 		return -1;
 	}
+
 
 	TRACE("Scaling samples");
 	// scale samples
@@ -131,16 +142,18 @@ int Transmitter::doWork() {
 		mpx_buffer[i] /= 10.;
 	}
 
+	fm.modulate(mpx_buffer, output_buffer);
+
 	TRACE("Exited Method");
     return 0;
 }
 
 
-std::vector<float>& Transmitter::getData() {
+std::vector< std::complex<float> >& Transmitter::getData() {
 	TRACE("Entered Method");
-	TRACE("Returning vector float of size: " << mpx_buffer.size());
+	TRACE("Returning complex float vector of size: " << output_buffer.size());
 	TRACE("Exited Method");
-	return mpx_buffer;
+	return output_buffer;
 }
 
 

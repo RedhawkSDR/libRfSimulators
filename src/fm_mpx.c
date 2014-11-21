@@ -193,19 +193,18 @@ int fm_mpx_get_samples(float *mpx_buffer, struct rds_struct* rds_params, struct 
         }
         // End of FIR filter
         
-
         mpx_buffer[i] = 
             mpx_buffer[i] +    // RDS data samples are currently in mpx_buffer
             4.05*out_mono;     // Unmodulated monophonic (or stereo-sum) signal
-            
-        if(fm_mpx_status->channels>1) {
-            mpx_buffer[i] +=
-                4.05 * carrier_38[fm_mpx_status->phase_38] * out_stereo + // Stereo difference signal
-                .9*carrier_19[fm_mpx_status->phase_19];                  // Stereo pilot tone
 
-            fm_mpx_status->phase_19++;
+        // XXX: YLB Added the stereo pilot tone to all signals mono or stereo.
+        mpx_buffer[i] += .9*carrier_19[fm_mpx_status->phase_19];                  // Stereo pilot tone
+		fm_mpx_status->phase_19++;
+		if(fm_mpx_status->phase_19 >= 12) fm_mpx_status->phase_19 = 0;
+
+        if(fm_mpx_status->channels>1) {
+            mpx_buffer[i] += 4.05 * carrier_38[fm_mpx_status->phase_38] * out_stereo; // Stereo difference signal
             fm_mpx_status->phase_38++;
-            if(fm_mpx_status->phase_19 >= 12) fm_mpx_status->phase_19 = 0;
             if(fm_mpx_status->phase_38 >= 6) fm_mpx_status->phase_38 = 0;
         }
             

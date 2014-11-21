@@ -12,12 +12,13 @@
 #include <fstream>
 #include <ctime>
 #include <sys/time.h>
+#include <complex>
 
 class SampleCallback: public CallbackInterface {
 public:
 	SampleCallback();
 	virtual ~SampleCallback();
-	void dataDelivery(std::vector<float> samples);
+	void dataDelivery(std::vector< std::complex<float> > samples);
 
 private:
 	std::ofstream testFile;

@@ -27,13 +27,11 @@ int main(void) {
 
 	DigitizerSimulator digSim;
 
-	digSim.print_hello();
-
-	digSim.init(p, &callback, 10);
+	digSim.init(p, &callback, -1);
 
 	digSim.start();
 
-	sleep(5);
+	sleep(30);
 
 	digSim.stop();
 

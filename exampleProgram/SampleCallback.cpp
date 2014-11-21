@@ -15,7 +15,7 @@ SampleCallback::~SampleCallback() {
 }
 
 
-void SampleCallback::dataDelivery(std::vector<float> samples) {
+void SampleCallback::dataDelivery(std::vector< std::complex<float> > samples) {
 	gettimeofday(&tp, NULL);
 	long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000; //get current timestamp in milliseconds
 	std::cout << ms << ": CallbackInterface Received: " << samples.size() << " data points" << std::endl;

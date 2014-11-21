@@ -4,12 +4,14 @@ using namespace std;
 #include "boost/bind.hpp"
 #include "DigitizerSimLogger.h"
 #include "boost/current_function.hpp"
+#include "CallbackInterface.h"
+#include "SimDefaults.h"
+#include <complex>
 
-#define CALLBACK_INTERVAL 250 // TODO: Make this configurable.
-#define DATA_SIZE 1024 // TODO: Make this configurable.
+// Call back interval is 1000ms / (samplerate / samples per block)
+#define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/DATA_BLOCK_SIZE))// TODO: Make this configurable.
 
 DigitizerSimulator::DigitizerSimulator() {
-
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
@@ -66,13 +68,6 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 }
 
 
-void DigitizerSimulator::print_hello(){
-	TRACE("Entered Method");
-	printf("Hi Youssef!\n");
-	TRACE("Leaving Method");
-}
-
-
 void DigitizerSimulator::stop() {
 	TRACE("Entered Method");
 	io.stop();
@@ -107,14 +102,14 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
-	std::vector<float> retVec;
-	retVec.resize(DATA_SIZE, 0.0);
+	std::vector< complex<float> > retVec;
+	retVec.resize(DATA_BLOCK_SIZE, complex<float> (0.0, 0.0));
 
 	int i;
 	// Kick off all the worker threads
 	TRACE("Starting all of the worker threads");
 	for (i = 0; i < transmitters.size(); ++i) {
-		transmitters[i]->start(DATA_SIZE);
+		transmitters[i]->start();
 	}
 
 	// Join them back up.
@@ -126,7 +121,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	// Collect the data and add it to the return vector
 	TRACE("Collecting data");
 	for (i = 0; i < transmitters.size(); ++i) {
-		std::vector<float> txData = transmitters[i]->getData();
+		std::vector< std::complex<float> > txData = transmitters[i]->getData();
 
 		if (txData.size() != retVec.size()) {
 			WARN("Vector size miss-match on transmitter: " << transmitters[i]->getFilePath().string())
@@ -134,7 +129,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 			WARN("Vector size provided: " << txData.size());
 		} else {
 			TRACE("Combining data with current collection");
-			std::transform(retVec.begin(), retVec.end(), txData.begin(), retVec.begin(), std::plus<float>());
+			std::transform(retVec.begin(), retVec.end(), txData.begin(), retVec.begin(), std::plus< complex<float> >());
 		}
 
 	}
@@ -196,7 +191,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 		else
 			tx->setRdsText(DEFAULT_RDS_TEXT);
 
-		if (tx->init(DATA_SIZE) != 0) {
+		if (tx->init(DATA_BLOCK_SIZE) != 0) {
 			ERROR("Initialization of transmitter failed!")
 			TRACE("Leaving Method");
 			return -1;
