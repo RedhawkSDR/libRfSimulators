@@ -9,10 +9,17 @@
 #include <math.h>
 #include "SimDefaults.h"
 
+#define RESAMPLER_A_FACTOR 5
+#define RESAMPLER_QUANTIZATION_FACTOR 0	//TODO: Explore how much this effects performance
+
 // From: http://gnuradio.org/redmine/projects/gnuradio/wiki/SignalProcessing
 // sensitivity = (2 * pi * max_deviation) / samp_rate
 
-Transmitter::Transmitter() : fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE) {
+Transmitter::Transmitter() :
+		fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE),
+		resampler(BASE_SAMPLE_RATE, OUTPUT_SAMPLE_RATE, RESAMPLER_A_FACTOR,	RESAMPLER_QUANTIZATION_FACTOR, realOut,	basebandCmplxUpSampled),
+		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
+		{
 
 	centerFrequency = -1;
 	rdsText = "REDHAWK Radio";
@@ -30,17 +37,23 @@ Transmitter::Transmitter() : fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMP
 		fm_mpx_status_struct.fir_buffer_mono[i] = 0;
 		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
-
 }
 
 Transmitter::~Transmitter() {
 }
 
 
-void Transmitter::setCenterFrequency(float centerFreqeuncy) {
+void Transmitter::setTunedFrequency(float tunedFrequency) {
 	TRACE("Entered Method");
-	TRACE("Setting Center Frequency to : " << centerFreqeuncy);
-	this->centerFrequency = centerFreqeuncy;
+	TRACE("Setting Tuned Frequency to : " << tunedFrequency);
+	TRACE("Song is setup with a center frequency of: " << centerFrequency << " and sample rate of " << OUTPUT_SAMPLE_RATE);
+	this->tunedFrequency = tunedFrequency;
+
+	float normFc = (this->tunedFrequency - centerFrequency) / OUTPUT_SAMPLE_RATE;
+
+	TRACE("Therefore this is a normFc of : " << normFc);
+	tuner.retune(normFc);
+
 	TRACE("Exited Method");
 }
 
@@ -89,9 +102,11 @@ void Transmitter::join() {
 	TRACE("Exited Method");
 }
 
-int Transmitter::init(int numSamples) {
+int Transmitter::init(float centerFrequency, int numSamples) {
 	TRACE("Entered Method");
 	this->numSamples = numSamples;
+	this->centerFrequency = centerFrequency;
+
 
 	TRACE("Initializing RDS struct");
 	rds_status_struct.pi = 0x1234;
@@ -109,8 +124,11 @@ int Transmitter::init(int numSamples) {
     mpx_buffer.clear();
     mpx_buffer.resize(numSamples);
 
-    output_buffer.clear();
-    output_buffer.resize(numSamples);
+    basebandCmplx.clear();
+    basebandCmplx.resize(numSamples, std::complex<float>(0.0,0.0));
+
+    basebandCmplxUpSampled.resize(numSamples*10, std::complex<float>(0.0,0.0));
+    basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
 
     initilized = true;
 	TRACE("Exited Method");
@@ -123,8 +141,9 @@ int Transmitter::init(int numSamples) {
  * then we need to be called 228 times a second.
  * Here is what we need to do each pass
  * 1. Use the PiRds library to take in the file and prep for FM modulation (Add RDS & pilot tone & separate the stereo etc)
- * 2. FM Modulae using the GNURadio impelmentation of FM modulation.
- * 3. Frequency shift up to he appropriate location.
+ * 2. FM Modulate using the GNURadio implementation of FM modulation.
+ * 3. Upsample to a higher sample rate so we can have higher bandwidth.
+ * 4. Frequency shift up to he appropriate location.
  */
 int Transmitter::doWork() {
 	TRACE("Entered Method");
@@ -137,12 +156,18 @@ int Transmitter::doWork() {
 
 
 	TRACE("Scaling samples");
-	// scale samples
 	for(int i = 0; i < numSamples; i++) {
 		mpx_buffer[i] /= 10.;
 	}
 
-	fm.modulate(mpx_buffer, output_buffer);
+	TRACE("FM Modulating the real data");
+	fm.modulate(mpx_buffer, basebandCmplx);
+
+	TRACE("Resampling from " << BASE_SAMPLE_RATE << " to " << OUTPUT_SAMPLE_RATE);
+	resampler.newData(basebandCmplx);
+
+	TRACE("Tuning to the relative frequency");
+	tuner.run();
 
 	TRACE("Exited Method");
     return 0;
@@ -151,9 +176,9 @@ int Transmitter::doWork() {
 
 std::vector< std::complex<float> >& Transmitter::getData() {
 	TRACE("Entered Method");
-	TRACE("Returning complex float vector of size: " << output_buffer.size());
+	TRACE("Returning complex float vector of size: " << basebandCmplxUpSampled.size());
 	TRACE("Exited Method");
-	return output_buffer;
+	return basebandCmplxUpSampledTuned;
 }
 
 

@@ -10,7 +10,8 @@
 #include <vector>
 #include <complex>
 
-#define DATA_BLOCK_SIZE 10000
+#define FILE_INPUT_BLOCK_SIZE 100000
+#define OUTPUT_SAMPLES_BLOCK_SIZE FILE_INPUT_BLOCK_SIZE*10
 
 class CallbackInterface
 {

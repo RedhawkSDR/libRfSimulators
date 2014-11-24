@@ -13,6 +13,8 @@
 #include "boost/thread.hpp"
 #include "FrequencyModulator.h"
 #include <complex>
+#include "resampler.h"
+#include "Tuner.h"
 
 extern "C" {
 #include "rds.h"
@@ -25,7 +27,7 @@ using namespace boost;
 class Transmitter {
 public:
 	Transmitter();
-	void setCenterFrequency(float centerFreqeuncy);
+	void setTunedFrequency(float centerFreqeuncy);
 	void setFilePath(path filePath);
 	path getFilePath();
 	void setRdsText(std::string rdsText);
@@ -34,22 +36,34 @@ public:
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
 	void start();
 	void join();
-	int init(int numSamples);
+	int init(float centerFreq, int numSamples);
 
 private:
+
+	// This is the station frequency from the XML file
 	float centerFrequency;
+
+	// This is the frequency we are currently tuned to so we can calculate the relative frequency to shift to.
+	float tunedFrequency;
+
 	path filePath;
 	std::string rdsText;
 	thread m_Thread;
 	int numSamples;
 	int doWork();
 	std::vector<float> mpx_buffer;
-	std::vector< std::complex<float> > output_buffer;
+	std::vector< std::complex<float> > basebandCmplx;
+	std::vector< std::complex<float> > basebandCmplxUpSampled;
+	std::vector< std::complex<float> > basebandCmplxUpSampledTuned;
 
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
+	ArbitraryRateResamplerClass resampler;
+	Tuner tuner;
+    std::vector<float> realOut; // Never used but needed for the resampler.
+
 };
 
 #endif /* TRANSMITTER_H_ */

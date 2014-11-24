@@ -9,7 +9,9 @@ using namespace std;
 #include <complex>
 
 // Call back interval is 1000ms / (samplerate / samples per block)
-#define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/DATA_BLOCK_SIZE))// TODO: Make this configurable.
+#define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/FILE_INPUT_BLOCK_SIZE))// TODO: Make this configurable.
+
+#define INITIAL_CENTER_FREQ 88500000
 
 DigitizerSimulator::DigitizerSimulator() {
 }
@@ -103,7 +105,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
 	std::vector< complex<float> > retVec;
-	retVec.resize(DATA_BLOCK_SIZE, complex<float> (0.0, 0.0));
+	retVec.resize(OUTPUT_SAMPLES_BLOCK_SIZE, complex<float> (0.0, 0.0));
 
 	int i;
 	// Kick off all the worker threads
@@ -134,8 +136,6 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 
 	}
 
-	// While it would appear this should be in its own thread, the dataGrab method is in its own thread that gets respawned
-	// so, worst case scenario the users class causes a build up of threads and the system runs out of resources...
 	TRACE("Delivering data to user class.");
 	userClass->dataDelivery(retVec);
 
@@ -182,7 +182,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 			return -1;
 	    }
 
-	    tx->setCenterFrequency(atof(pParm->GetText()));
+	    float centerFreq = atof(pParm->GetText());
 
 		pParm = pRoot->FirstChildElement("RDS");
 
@@ -191,11 +191,13 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 		else
 			tx->setRdsText(DEFAULT_RDS_TEXT);
 
-		if (tx->init(DATA_BLOCK_SIZE) != 0) {
+		if (tx->init(centerFreq, FILE_INPUT_BLOCK_SIZE) != 0) {
 			ERROR("Initialization of transmitter failed!")
 			TRACE("Leaving Method");
 			return -1;
 		}
+
+		tx->setTunedFrequency(INITIAL_CENTER_FREQ);
 
 		transmitters.push_back(tx);
 		TRACE("Stored following: " << *tx);
