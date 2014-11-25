@@ -7,7 +7,7 @@
 #ifndef CALLBACKINTERFACE_H_
 #define CALLBACKINTERFACE_H_
 
-#include <vector>
+#include <valarray>
 #include <complex>
 
 #define FILE_INPUT_BLOCK_SIZE 100000
@@ -16,7 +16,7 @@
 class CallbackInterface
 {
 public:
-    virtual void dataDelivery(std::vector< std::complex<float> > samples) = 0;
+    virtual void dataDelivery(std::valarray< std::complex<float> > samples) = 0;
 };
 
 

@@ -109,7 +109,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
-	std::vector< complex<float> > retVec;
+	std::valarray< complex<float> > retVec;
 	retVec.resize(OUTPUT_SAMPLES_BLOCK_SIZE, complex<float> (0.0, 0.0));
 
 	int i;
@@ -128,7 +128,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	// Collect the data and add it to the return vector
 	TRACE("Collecting data");
 	for (i = 0; i < transmitters.size(); ++i) {
-		std::vector< std::complex<float> > txData = transmitters[i]->getData();
+		std::valarray< std::complex<float> > txData = transmitters[i]->getData();
 
 		if (txData.size() != retVec.size()) {
 			WARN("Vector size miss-match on transmitter: " << transmitters[i]->getFilePath().string())
@@ -136,7 +136,8 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 			WARN("Vector size provided: " << txData.size());
 		} else {
 			TRACE("Combining data with current collection");
-			std::transform(retVec.begin(), retVec.end(), txData.begin(), retVec.begin(), std::plus< complex<float> >());
+
+			retVec = txData + retVec;
 		}
 
 	}

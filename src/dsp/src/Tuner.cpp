@@ -70,7 +70,7 @@ using namespace std;
 //
 //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
 
-Tuner::Tuner(ComplexVector &input, ComplexVector &output, const Real normFc) :
+Tuner::Tuner(ComplexArray &input, ComplexArray &output, const Real normFc) :
     _input(input),
     _output(output)
 {

@@ -9,16 +9,13 @@
 #include <math.h>
 #include "SimDefaults.h"
 
-#define RESAMPLER_A_FACTOR 5
-#define RESAMPLER_QUANTIZATION_FACTOR 0	//TODO: Explore how much this effects performance
-
 // From: http://gnuradio.org/redmine/projects/gnuradio/wiki/SignalProcessing
 // sensitivity = (2 * pi * max_deviation) / samp_rate
 
 Transmitter::Transmitter() :
 		fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE),
-//		resampler(BASE_SAMPLE_RATE, OUTPUT_SAMPLE_RATE, RESAMPLER_A_FACTOR,	RESAMPLER_QUANTIZATION_FACTOR, realOut,	basebandCmplxUpSampled),
-		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
+		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0),
+		filter(basebandCmplxUpSampled_tmp, basebandCmplxUpSampled, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(FILTER_CUTOFF))
 		{
 
 	centerFrequency = -1;
@@ -38,8 +35,8 @@ Transmitter::Transmitter() :
 		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
 
-//	filterdesigner.wdfirHz(tmp,type,filterProps.Ripple, filterProps.TransitionWidth, filterProps.freq1, filterProps.freq2, sampleRate,minTaps,maxTaps);
-
+//	filterTaps.clear();
+//	filterDesigner.wdfirHz(filterTaps, FIRFilter::lowpass, FILTER_RIPPLE, FILTER_TRANSITIONWIDTH, FILTER_LPCUTOFF, 0.0, OUTPUT_SAMPLE_RATE, FILTER_MIN_TAPS, FILTER_MAX_TAPS);
 
 }
 
@@ -125,14 +122,13 @@ int Transmitter::init(float centerFrequency, int numSamples) {
     }
 
     TRACE("Clearing MPX and output vector buffer and resizing for " << numSamples << " samples");
-    mpx_buffer.clear();
-    mpx_buffer.resize(numSamples);
+    mpx_buffer.resize(numSamples, 0);
 
-    basebandCmplx.clear();
     basebandCmplx.resize(numSamples, std::complex<float>(0.0,0.0));
 
+    basebandCmplxUpSampled_tmp.resize(numSamples*10, std::complex<float>(0.0,0.0));
     basebandCmplxUpSampled.resize(numSamples*10, std::complex<float>(0.0,0.0));
-//    basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
+    basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
 
     initilized = true;
 	TRACE("Exited Method");
@@ -160,37 +156,34 @@ int Transmitter::doWork() {
 
 
 	TRACE("Scaling samples");
-	for(int i = 0; i < numSamples; i++) {
-		mpx_buffer[i] /= 10.;
-	}
+	mpx_buffer /= 10.;
 
 	TRACE("FM Modulating the real data");
 	fm.modulate(mpx_buffer, basebandCmplx);
 
-	// Arbitrary rate resampler is a bit overkill.
-//	TRACE("Resampling from " << BASE_SAMPLE_RATE << " to " << OUTPUT_SAMPLE_RATE);
-//	resampler.newData(basebandCmplx);
-
-	// Insert 9 0's between each sample to upsample
-	for (int i = 0; i < basebandCmplx.size(); ++i){
-		basebandCmplxUpSampled[10*i] = basebandCmplx[i];
+	TRACE("Up Sampling the modulated data");
+	// Insert nine 0's between each sample to upsample
+	for (int i = 0; i < basebandCmplx.size(); ++i) {
+		basebandCmplxUpSampled_tmp[10*i] = basebandCmplx[i];
 	}
 
+	TRACE("Filtering the upsampled data");
+	filter.run();
 
 
 	TRACE("Tuning to the relative frequency");
-//	tuner.run();
+	tuner.run();
 
 	TRACE("Exited Method");
     return 0;
 }
 
 
-std::vector< std::complex<float> >& Transmitter::getData() {
+std::valarray< std::complex<float> >& Transmitter::getData() {
 	TRACE("Entered Method");
-	TRACE("Returning complex float vector of size: " << basebandCmplxUpSampled.size());
+	TRACE("Returning complex float vector of size: " << basebandCmplxUpSampledTuned.size());
 	TRACE("Exited Method");
-	return basebandCmplxUpSampled;
+	return basebandCmplxUpSampledTuned;
 }
 
 

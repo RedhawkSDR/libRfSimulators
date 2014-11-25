@@ -15,7 +15,7 @@ FrequencyModulator::~FrequencyModulator() {
 }
 
 // Algorithm taken from the gnuradio block frequency_modulator
-void FrequencyModulator::modulate(std::vector<float> &input, std::vector< std::complex<float> > &output) {
+void FrequencyModulator::modulate(std::valarray<float> &input, std::valarray< std::complex<float> > &output) {
      for(int i = 0; i < input.size(); i++) {
        d_phase = d_phase + d_sensitivity * input[i];
 

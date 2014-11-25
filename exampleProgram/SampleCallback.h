@@ -18,7 +18,7 @@ class SampleCallback: public CallbackInterface {
 public:
 	SampleCallback();
 	virtual ~SampleCallback();
-	void dataDelivery(std::vector< std::complex<float> > samples);
+	void dataDelivery(std::valarray< std::complex<float> > samples);
 
 private:
 	std::ofstream testFile;

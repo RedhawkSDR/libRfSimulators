@@ -27,6 +27,9 @@ extern "C" {
 using namespace boost::filesystem;
 using namespace boost;
 
+#define FILTER_ATTENUATION 70 // dB
+#define FILTER_CUTOFF (0.5*0.5*(BASE_SAMPLE_RATE / OUTPUT_SAMPLE_RATE)) // normalized frequency
+
 class Transmitter {
 public:
 	Transmitter();
@@ -35,7 +38,7 @@ public:
 	path getFilePath();
 	void setRdsText(std::string rdsText);
 	virtual ~Transmitter();
-	std::vector< std::complex<float> >& getData();
+	std::valarray< std::complex<float> >& getData();
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
 	void start();
 	void join();
@@ -54,22 +57,18 @@ private:
 	thread m_Thread;
 	int numSamples;
 	int doWork();
-	std::vector<float> mpx_buffer;
-	std::vector< std::complex<float> > basebandCmplx;
-	std::vector< std::complex<float> > basebandCmplxUpSampled;
-	std::vector< std::complex<float> > basebandCmplxUpSampledTuned;
+	std::valarray<float> mpx_buffer;
+	std::valarray< std::complex<float> > basebandCmplx;
+	std::valarray< std::complex<float> > basebandCmplxUpSampled;
+	std::valarray< std::complex<float> > basebandCmplxUpSampled_tmp;
+	std::valarray< std::complex<float> > basebandCmplxUpSampledTuned;
 
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
-//	ArbitraryRateResamplerClass resampler;
-	FIRFilter * filter;
-//	FirFilterDesigner filterDesigner;
-
-
+	FIRFilter filter;
 	Tuner tuner;
-    std::vector<float> realOut; // Never used but needed for the resampler.
 
 };
 

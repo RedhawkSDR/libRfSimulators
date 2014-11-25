@@ -7,7 +7,7 @@
 #ifndef FREQUENCYMODULATOR_H_
 #define FREQUENCYMODULATOR_H_
 
-#include <vector>
+#include <valarray>
 #include <math.h>
 #include <sys/types.h>
 #include <complex>
@@ -50,7 +50,7 @@ class FrequencyModulator {
 public:
 	FrequencyModulator(float sensitivity);
 	virtual ~FrequencyModulator();
-	void modulate(std::vector<float> &input, std::vector< std::complex<float> > &output);
+	void modulate(std::valarray<float> &input, std::valarray< std::complex<float> > &output);
 
 private:
 	float d_sensitivity;
