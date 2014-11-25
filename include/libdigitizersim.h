@@ -1,7 +1,6 @@
 #ifndef libdigitizersim_H
 #define libdigitizersim_H
 
-#include "Transmitter.h"
 #include "boost/filesystem.hpp"
 #include <iostream>
 #include <stdio.h>
@@ -56,7 +55,6 @@ public:
 
 private:
 	int loadCfgFile(path filPath);
-	std::vector<Transmitter*> transmitters;
 	CallbackInterface *userClass;
 	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
 	boost::asio::io_service io;

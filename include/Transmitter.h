@@ -13,8 +13,11 @@
 #include "boost/thread.hpp"
 #include "FrequencyModulator.h"
 #include <complex>
-#include "resampler.h"
 #include "Tuner.h"
+#include "FIRFilter.h"
+#include "FirFilterDesigner.h"
+#include "fftw3.h"
+#include "fftw_allocator.h"
 
 extern "C" {
 #include "rds.h"
@@ -60,7 +63,11 @@ private:
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
-	ArbitraryRateResamplerClass resampler;
+//	ArbitraryRateResamplerClass resampler;
+	FIRFilter * filter;
+//	FirFilterDesigner filterDesigner;
+
+
 	Tuner tuner;
     std::vector<float> realOut; // Never used but needed for the resampler.
 

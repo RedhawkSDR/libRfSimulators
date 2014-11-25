@@ -7,11 +7,16 @@ using namespace std;
 #include "CallbackInterface.h"
 #include "SimDefaults.h"
 #include <complex>
+#include "Transmitter.h"
 
 // Call back interval is 1000ms / (samplerate / samples per block)
 #define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/FILE_INPUT_BLOCK_SIZE))// TODO: Make this configurable.
 
 #define INITIAL_CENTER_FREQ 88500000
+
+
+// This is put here rather than in the header file to prevent the user class from having to know about Transmitter.h
+std::vector<Transmitter*> transmitters;
 
 DigitizerSimulator::DigitizerSimulator() {
 }

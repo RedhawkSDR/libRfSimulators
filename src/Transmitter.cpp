@@ -17,7 +17,7 @@
 
 Transmitter::Transmitter() :
 		fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE),
-		resampler(BASE_SAMPLE_RATE, OUTPUT_SAMPLE_RATE, RESAMPLER_A_FACTOR,	RESAMPLER_QUANTIZATION_FACTOR, realOut,	basebandCmplxUpSampled),
+//		resampler(BASE_SAMPLE_RATE, OUTPUT_SAMPLE_RATE, RESAMPLER_A_FACTOR,	RESAMPLER_QUANTIZATION_FACTOR, realOut,	basebandCmplxUpSampled),
 		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
 		{
 
@@ -37,6 +37,10 @@ Transmitter::Transmitter() :
 		fm_mpx_status_struct.fir_buffer_mono[i] = 0;
 		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
+
+//	filterdesigner.wdfirHz(tmp,type,filterProps.Ripple, filterProps.TransitionWidth, filterProps.freq1, filterProps.freq2, sampleRate,minTaps,maxTaps);
+
+
 }
 
 Transmitter::~Transmitter() {
@@ -128,7 +132,7 @@ int Transmitter::init(float centerFrequency, int numSamples) {
     basebandCmplx.resize(numSamples, std::complex<float>(0.0,0.0));
 
     basebandCmplxUpSampled.resize(numSamples*10, std::complex<float>(0.0,0.0));
-    basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
+//    basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
 
     initilized = true;
 	TRACE("Exited Method");
@@ -163,11 +167,19 @@ int Transmitter::doWork() {
 	TRACE("FM Modulating the real data");
 	fm.modulate(mpx_buffer, basebandCmplx);
 
-	TRACE("Resampling from " << BASE_SAMPLE_RATE << " to " << OUTPUT_SAMPLE_RATE);
-	resampler.newData(basebandCmplx);
+	// Arbitrary rate resampler is a bit overkill.
+//	TRACE("Resampling from " << BASE_SAMPLE_RATE << " to " << OUTPUT_SAMPLE_RATE);
+//	resampler.newData(basebandCmplx);
+
+	// Insert 9 0's between each sample to upsample
+	for (int i = 0; i < basebandCmplx.size(); ++i){
+		basebandCmplxUpSampled[10*i] = basebandCmplx[i];
+	}
+
+
 
 	TRACE("Tuning to the relative frequency");
-	tuner.run();
+//	tuner.run();
 
 	TRACE("Exited Method");
     return 0;
@@ -178,7 +190,7 @@ std::vector< std::complex<float> >& Transmitter::getData() {
 	TRACE("Entered Method");
 	TRACE("Returning complex float vector of size: " << basebandCmplxUpSampled.size());
 	TRACE("Exited Method");
-	return basebandCmplxUpSampledTuned;
+	return basebandCmplxUpSampled;
 }
 
 
