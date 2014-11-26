@@ -8,7 +8,7 @@ lib_LTLIBRARIES = libdigitizersim.la
 # Build information for each library
 
 # Sources for libdigitizersim
-libdigitizersim_la_SOURCES = libdigitizersim.cpp Transmitter.cpp ./PiFmRds/src/fm_mpx.c ./PiFmRds/src/rds.c ./PiFmRds/src/waveforms.c ./gnuradio/src/FrequencyModulator.cpp ./dsp/src/resampler.cpp ./dsp/src/Tuner.cpp ./dsp/src/FIRFilter.cpp
+libdigitizersim_la_SOURCES = libdigitizersim.cpp Transmitter.cpp ./PiFmRds/src/fm_mpx.c ./PiFmRds/src/rds.c ./PiFmRds/src/waveforms.c ./gnuradio/src/FrequencyModulator.cpp ./dsp/src/resampler.cpp ./dsp/src/Tuner.cpp ./dsp/src/FIRFilter.cpp UserDataQueue.cpp
 
 # Linker options libTestProgram
 libdigitizersim_la_LDFLAGS = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_THREAD_LIB) -ltinyxml -lsndfile -llog4cxx

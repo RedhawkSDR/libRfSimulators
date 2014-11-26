@@ -9,21 +9,26 @@ using namespace std;
 #include <complex>
 #include "Transmitter.h"
 
+
 // Call back interval is 1000ms / (samplerate / samples per block)
 #define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/FILE_INPUT_BLOCK_SIZE))// TODO: Make this configurable.
 
 #define INITIAL_CENTER_FREQ 88500000
-
+#define DEFAULT_QUEUE_SIZE 5
 
 // This is put here rather than in the header file to prevent the user class from having to know about Transmitter.h
 std::vector<Transmitter*> transmitters;
 
 DigitizerSimulator::DigitizerSimulator() {
+	maxQueueSize = DEFAULT_QUEUE_SIZE;
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
 	if (alarm)
 		delete(alarm);
+
+	if (userDataQueue)
+		delete(userDataQueue);
 }
 
 int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
@@ -53,7 +58,7 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
 
 	TRACE("Entered Method");
-	alarm = new boost::asio::deadline_timer(io, boost::posix_time::milliseconds(CALLBACK_INTERVAL));
+	alarm = new boost::asio::deadline_timer(io);
 
 	this->userClass = userClass;
 	transmitters.clear();
@@ -78,11 +83,13 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 void DigitizerSimulator::stop() {
 	TRACE("Entered Method");
 	io.stop();
+	free(userDataQueue);
 	TRACE("Leaving Method");
 }
 
 void DigitizerSimulator::_start() {
 	TRACE("Entered Method");
+	alarm->expires_from_now(boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 	io.run();
 	TRACE("Leaving Method");
 }
@@ -96,6 +103,8 @@ void DigitizerSimulator::start() {
 
 	TRACE("Running the asio io-service in new thread");
 
+	userDataQueue = new UserDataQueue(maxQueueSize, this->userClass);
+	boost::thread dataCheckThread(boost::bind(&UserDataQueue::wait_for_data_to_process, this->userDataQueue));
 	// TODO: The internal start method isn't needed.  We should be able to call this classes io.run from this line.
 	boost::thread iot(boost::bind(&DigitizerSimulator::_start, this));
 	TRACE("Leaving Method");
@@ -103,6 +112,12 @@ void DigitizerSimulator::start() {
 
 void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
 	TRACE("Entered Method");
+
+	TRACE("Checking Timer isn't overdue");
+	if ( (alarm->expires_from_now() + boost::posix_time::milliseconds(CALLBACK_INTERVAL)).is_negative() ) {
+		//TODO: Should this be a warning or an error?  Or an exception?
+		WARN("Data delivery is lagging from real-time.  Consider reducing the number of input files.");
+	}
 
 	TRACE("Reseting alarm");
 	// Reset timer
@@ -143,7 +158,8 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	}
 
 	TRACE("Delivering data to user class.");
-	userClass->dataDelivery(retVec);
+//	userClass->dataDelivery(retVec);
+	userDataQueue->deliverData(retVec);
 
 	TRACE("Leaving Method");
 }
@@ -217,4 +233,15 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 
 	TRACE("Leaving Method");
 	return 0;
+}
+
+void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
+	if (userDataQueue)
+		userDataQueue->setMaxQueueSize(queueSize);
+
+	maxQueueSize = queueSize;
+
+	if(queueSize == 0) {
+		WARN("Queue Size has been set to zero.  You will not receive any data");
+	}
 }

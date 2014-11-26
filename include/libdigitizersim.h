@@ -9,6 +9,8 @@
 #include "CallbackInterface.h"
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <queue>
+#include "UserDataQueue.h"
 
 using namespace boost::filesystem;
 
@@ -34,6 +36,13 @@ public:
 	int setGain(unsigned short gain);
 
 	/**
+	 * Set the size of the data queue that can build up if users do not
+	 * service the callback fast enough.
+	 */
+	void setQueueSize(unsigned short queueSize);
+
+
+	/**
 	 * Sets the center frequency between 80Mhz and 110Mhz.
 	 * Units are in Mhz.
 	 * Returns 0 on success, -1 on failure.
@@ -56,6 +65,9 @@ public:
 private:
 	int loadCfgFile(path filPath);
 	CallbackInterface *userClass;
+	UserDataQueue *userDataQueue;
+	unsigned int maxQueueSize;
+
 	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
 	boost::asio::io_service io;
 	boost::asio::deadline_timer * alarm;
