@@ -10,7 +10,6 @@
 
 UserDataQueue::UserDataQueue(unsigned short maxQueueDepth, CallbackInterface *userClass) {
 	this->maxQueueDepth = maxQueueDepth;
-	data_ready = false;
 	this->userClass = userClass;
 	shuttingDown = false;
 	waitForDataThread = NULL;
@@ -34,7 +33,7 @@ void UserDataQueue::_waitForData() {
 		{
 			// This locks the mutex.
 			boost::unique_lock<boost::mutex> lock(mut);
-			while((dataBuffer.size() == 0)  && (not shuttingDown))
+			while((internalDataBuffer.size() == 0)  && (not shuttingDown))
 			{
 				// This unlocks the mutex until the wait is over
 				cond.wait(lock);
@@ -46,10 +45,10 @@ void UserDataQueue::_waitForData() {
 				break;
 			}
 
-			dataCopy.resize(dataBuffer.front().size());
-			dataCopy = dataBuffer.front();
+			dataCopy.resize(internalDataBuffer.front().size());
+			dataCopy = internalDataBuffer.front();
 
-			dataBuffer.pop();
+			internalDataBuffer.pop();
 		}
 
 		userClass->dataDelivery(dataCopy);
@@ -83,17 +82,17 @@ void UserDataQueue::deliverData(std::valarray< std::complex<float> > &dataArray)
         		// Fall through on purpose to flush queue.
         }
 
-		if (dataBuffer.size() > maxQueueDepth) {
+		if (internalDataBuffer.size() > maxQueueDepth) {
 			ERROR("Queue flushing!  Data was not serviced fast enough.");
 
-			while (dataBuffer.size() > 0) {
-				dataBuffer.pop();
+			while (internalDataBuffer.size() > 0) {
+				internalDataBuffer.pop();
 			}
 
 			return;
 		}
 
-		dataBuffer.push(dataArray);
+		internalDataBuffer.push(dataArray);
     }
 
     cond.notify_one();

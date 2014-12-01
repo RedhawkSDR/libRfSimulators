@@ -304,3 +304,4 @@ void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
 		WARN("Queue Size has been set to zero.  You will not receive any data");
 	}
 }
+

@@ -28,7 +28,7 @@ using namespace boost::filesystem;
 using namespace boost;
 
 #define FILTER_ATTENUATION 70 // dB
-#define FILTER_CUTOFF (0.5*0.5*(BASE_SAMPLE_RATE / OUTPUT_SAMPLE_RATE)) // normalized frequency
+#define FILTER_CUTOFF (0.5*0.5*(BASE_SAMPLE_RATE / MAX_OUTPUT_SAMPLE_RATE)) // normalized frequency
 
 class Transmitter {
 public:

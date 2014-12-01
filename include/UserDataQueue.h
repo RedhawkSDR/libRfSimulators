@@ -33,9 +33,8 @@ private:
 
 	boost::condition_variable cond;
 	boost::mutex mut;
-	bool data_ready;
 	unsigned short maxQueueDepth;
-	std::queue< std::valarray< std::complex<float> > > dataBuffer;
+	std::queue< std::valarray< std::complex<float> > > internalDataBuffer;
 	CallbackInterface *userClass;
 	void _waitForData();
 	boost::thread *waitForDataThread;

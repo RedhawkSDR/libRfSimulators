@@ -74,7 +74,6 @@ private:
 	void _start();
 	boost::thread *io_service_thread;
 	bool stopped, initialized;
-
 };
 
 #endif

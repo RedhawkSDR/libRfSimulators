@@ -40,16 +40,18 @@ Transmitter::Transmitter() :
 }
 
 Transmitter::~Transmitter() {
+	// Wait for the thread to join up
+	m_Thread.join();
 }
 
 
 void Transmitter::setTunedFrequency(float tunedFrequency) {
 	TRACE("Entered Method");
 	TRACE("Setting Tuned Frequency to : " << tunedFrequency);
-	TRACE("Song is setup with a center frequency of: " << centerFrequency << " and sample rate of " << OUTPUT_SAMPLE_RATE);
+	TRACE("Song is setup with a center frequency of: " << centerFrequency << " and sample rate of " << MAX_OUTPUT_SAMPLE_RATE);
 	this->tunedFrequency = tunedFrequency;
 
-	float normFc = (this->tunedFrequency - centerFrequency) / OUTPUT_SAMPLE_RATE;
+	float normFc = (this->tunedFrequency - centerFrequency) / MAX_OUTPUT_SAMPLE_RATE;
 
 	TRACE("Therefore this is a normFc of : " << normFc);
 	tuner.retune(normFc);
@@ -77,10 +79,6 @@ void Transmitter::setRdsText(std::string rdsText) {
 	TRACE("Exited Method");
 }
 
-/**
- * TODO: This does not seem ideal.  The creation of a thread is time consuming and resource heavy.  We should have the thread in a wait state
- * and then on start it takes off.
- */
 void Transmitter::start() {
 	TRACE("Entered Method");
 
@@ -151,34 +149,43 @@ int Transmitter::init(float centerFrequency, int numSamples) {
 int Transmitter::doWork() {
 	TRACE("Entered Method");
 
-	TRACE("Receiving samples from fm_mpx_get_samples() for file: " );
-	if( fm_mpx_get_samples(&mpx_buffer[0], &rds_status_struct, &fm_mpx_status_struct) < 0 ) {
-		ERROR("Error occurred adding RDS data to sound file.");
-		return -1;
+	// Only do work if our frequency is within the bandwidth of the tuner.
+	TRACE("Checking if there is any reason to do work.");
+	if (abs(centerFrequency - tunedFrequency) > 0.5 * MAX_OUTPUT_SAMPLE_RATE) {
+		TRACE("Transmitter is not in tuned range.  Returning call zeros.");
+		basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
+		return 0;
+	} else {
+
+		TRACE("Receiving samples from fm_mpx_get_samples() for file: " );
+		if( fm_mpx_get_samples(&mpx_buffer[0], &rds_status_struct, &fm_mpx_status_struct) < 0 ) {
+			ERROR("Error occurred adding RDS data to sound file.");
+			return -1;
+		}
+
+
+		TRACE("Scaling samples");
+		mpx_buffer /= 10.;
+
+		TRACE("FM Modulating the real data");
+		fm.modulate(mpx_buffer, basebandCmplx);
+
+		TRACE("Up Sampling the modulated data");
+		// Insert nine 0's between each sample to upsample
+		for (int i = 0; i < basebandCmplx.size(); ++i) {
+			basebandCmplxUpSampled_tmp[10*i] = basebandCmplx[i];
+		}
+
+		TRACE("Filtering the upsampled data");
+		filter.run();
+
+
+		TRACE("Tuning to the relative frequency");
+		tuner.run();
+
+		TRACE("Exited Method");
+		return 0;
 	}
-
-
-	TRACE("Scaling samples");
-	mpx_buffer /= 10.;
-
-	TRACE("FM Modulating the real data");
-	fm.modulate(mpx_buffer, basebandCmplx);
-
-	TRACE("Up Sampling the modulated data");
-	// Insert nine 0's between each sample to upsample
-	for (int i = 0; i < basebandCmplx.size(); ++i) {
-		basebandCmplxUpSampled_tmp[10*i] = basebandCmplx[i];
-	}
-
-	TRACE("Filtering the upsampled data");
-	filter.run();
-
-
-	TRACE("Tuning to the relative frequency");
-	tuner.run();
-
-	TRACE("Exited Method");
-    return 0;
 }
 
 
