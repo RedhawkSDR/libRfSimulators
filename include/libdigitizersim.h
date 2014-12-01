@@ -72,6 +72,9 @@ private:
 	boost::asio::io_service io;
 	boost::asio::deadline_timer * alarm;
 	void _start();
+	boost::thread *io_service_thread;
+	bool stopped;
+
 };
 
 #endif

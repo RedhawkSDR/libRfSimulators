@@ -31,7 +31,7 @@ int main(void) {
 
 	digSim.start();
 
-	sleep(10);
+	sleep(3);
 
 	digSim.stop();
 

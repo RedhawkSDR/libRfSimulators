@@ -8,6 +8,7 @@
 #define USERDATAQUEUE_H_
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <valarray>
 #include <complex>
@@ -21,11 +22,14 @@ public:
 	virtual ~UserDataQueue();
 
 	void deliverData(std::valarray< std::complex<float> > &dataArray);
-	void wait_for_data_to_process();
+	void waitForData();
+	void shutDown();
 	void setMaxQueueSize(unsigned short size);
 
 private:
 	void process_data();
+
+	bool shuttingDown;
 
 	boost::condition_variable cond;
 	boost::mutex mut;
@@ -33,6 +37,8 @@ private:
 	unsigned short maxQueueDepth;
 	std::queue< std::valarray< std::complex<float> > > dataBuffer;
 	CallbackInterface *userClass;
+	void _waitForData();
+	boost::thread *waitForDataThread;
 };
 
 #endif /* USERDATAQUEUE_H_ */

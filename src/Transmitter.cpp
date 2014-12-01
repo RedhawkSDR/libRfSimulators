@@ -35,9 +35,8 @@ Transmitter::Transmitter() :
 		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
 
-//	filterTaps.clear();
-//	filterDesigner.wdfirHz(filterTaps, FIRFilter::lowpass, FILTER_RIPPLE, FILTER_TRANSITIONWIDTH, FILTER_LPCUTOFF, 0.0, OUTPUT_SAMPLE_RATE, FILTER_MIN_TAPS, FILTER_MAX_TAPS);
-
+	filePath = "";
+	tunedFrequency = 0.0;
 }
 
 Transmitter::~Transmitter() {
@@ -114,6 +113,10 @@ int Transmitter::init(float centerFrequency, int numSamples) {
 	set_rds_ps(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
 	set_rds_rt(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
 
+	if (filePath == "") {
+		ERROR("File Path to wav file has not been set!");
+		return -1;
+	}
 
 	TRACE("Opening fm mpx file for " << filePath.string());
     if(fm_mpx_open(const_cast<char *> (filePath.string().c_str()), numSamples, &fm_mpx_status_struct) != 0) {

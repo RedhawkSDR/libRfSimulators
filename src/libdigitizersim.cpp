@@ -21,14 +21,26 @@ std::vector<Transmitter*> transmitters;
 
 DigitizerSimulator::DigitizerSimulator() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
+	stopped = true;
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
-	if (alarm)
+	if (not stopped) {
+		stop();
+	}
+	if (alarm) {
 		delete(alarm);
+		alarm = NULL;
+	}
 
-	if (userDataQueue)
-		delete(userDataQueue);
+	for (int i = 0; i < transmitters.size(); ++i) {
+		if (transmitters[i]) {
+			delete(transmitters[i]);
+			transmitters[i] = NULL;
+		}
+	}
+
+	transmitters.clear();
 }
 
 int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
@@ -82,8 +94,30 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 
 void DigitizerSimulator::stop() {
 	TRACE("Entered Method");
+
+	// Stop the Boost Asynchronous Service
 	io.stop();
-	free(userDataQueue);
+
+	// It was running in its own thread so make sure it completes
+	io_service_thread->join();
+
+	// Then destroy the memory for that thread
+	if (io_service_thread) {
+		delete(io_service_thread);
+		io_service_thread = NULL;
+	}
+
+	// Now shutdown the data queue
+	userDataQueue->shutDown();
+
+	// And delete it.
+	if (userDataQueue) {
+		delete(userDataQueue);
+		userDataQueue = NULL;
+	}
+
+	stopped = true;
+
 	TRACE("Leaving Method");
 }
 
@@ -104,10 +138,16 @@ void DigitizerSimulator::start() {
 	TRACE("Running the asio io-service in new thread");
 
 	userDataQueue = new UserDataQueue(maxQueueSize, this->userClass);
-	boost::thread dataCheckThread(boost::bind(&UserDataQueue::wait_for_data_to_process, this->userDataQueue));
+
+	// This runs in its own thread and waits for data to arrive.
+	userDataQueue->waitForData();
+
 	// TODO: The internal start method isn't needed.  We should be able to call this classes io.run from this line.
-	boost::thread iot(boost::bind(&DigitizerSimulator::_start, this));
+	io_service_thread = new boost::thread(boost::bind(&DigitizerSimulator::_start, this));
+
+	stopped = false;
 	TRACE("Leaving Method");
+
 }
 
 void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
@@ -158,7 +198,6 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	}
 
 	TRACE("Delivering data to user class.");
-//	userClass->dataDelivery(retVec);
 	userDataQueue->deliverData(retVec);
 
 	TRACE("Leaving Method");
@@ -182,6 +221,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	    	ERROR("FileName element is required within file: " << filePath.string());
 	    	TRACE("Leaving Method");
 	    	delete(tx);
+	    	tx = NULL;
 	    	return -1;
 	    }
 
@@ -190,6 +230,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	    if (not exists(filepath)) {
 	    	ERROR("Could not locate file: " << filepath.string());
 			delete(tx);
+			tx = NULL;
 			return -1;
 	    }
 
@@ -201,6 +242,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 			ERROR("CenterFrequency element is required within file: " << filePath.string());
 			TRACE("Leaving Method");
 			delete(tx);
+			tx = NULL;
 			return -1;
 	    }
 
