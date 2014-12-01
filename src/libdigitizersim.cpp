@@ -22,6 +22,12 @@ std::vector<Transmitter*> transmitters;
 DigitizerSimulator::DigitizerSimulator() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
 	stopped = true;
+	initialized = false;
+
+	io_service_thread = NULL;
+	alarm = NULL;
+	userClass = NULL;
+	userDataQueue = NULL;
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
@@ -44,32 +50,46 @@ DigitizerSimulator::~DigitizerSimulator() {
 }
 
 int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
-	// Set up a simple configuration that logs on the console.
-	BasicConfigurator::configure();
 
-	if (logLevel < 0)
-		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
+	if (not initialized) {
 
-	switch ( logLevel )
-	{
-	 case 0:
-		 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getError());
-		break;
-	 case 1:
-		 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
-		break;
-	 case 2:
-		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
-		break;
-	 case 3:
-		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getTrace());
-		break;
+		// Set up a simple configuration that logs on the console.
+		BasicConfigurator::configure();
+
+		if (logLevel < 0)
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getOff());
+
+		switch ( logLevel )
+		{
+		 case 0:
+			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getError());
+			break;
+		 case 1:
+			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
+			break;
+		 case 2:
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
+			break;
+		 case 3:
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getTrace());
+			break;
+		}
+
+		if (logLevel > 3)
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
+	}
+	TRACE("Entered Method");
+
+	if (initialized) {
+		WARN("Already initialized.  This call to init will be ignored");
+		return -1;
 	}
 
-	if (logLevel > 3)
-		log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
+	if (userClass == NULL) {
+		ERROR("User class is NULL!");
+		return -1;
+	}
 
-	TRACE("Entered Method");
 	alarm = new boost::asio::deadline_timer(io);
 
 	this->userClass = userClass;
@@ -77,8 +97,7 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 
 	directory_iterator end_itr;
 	// cycle through the directory and save all the XML configurations.
-	for (directory_iterator itr(cfgFilePath); itr != end_itr; ++itr)
-	{
+	for (directory_iterator itr(cfgFilePath); itr != end_itr; ++itr) {
 		// If it's not a directory, list it. If you want to list directories too, just remove this check.
 		if (is_regular_file(itr->path())) {
 			if(itr->path().extension() == ".xml") {
@@ -86,6 +105,8 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 			}
 		}
 	}
+
+	initialized = true;
 
 	TRACE("Leaving Method");
 	return 0;
@@ -130,30 +151,28 @@ void DigitizerSimulator::_start() {
 
 void DigitizerSimulator::start() {
 	TRACE("Entered Method");
-	TRACE("Setting the boost asio deadline_timer");
 
 	TRACE("Binding deadline_timer to dataGrab method");
 	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
-	TRACE("Running the asio io-service in new thread");
-
+	TRACE("Creating a data queue object for user data");
 	userDataQueue = new UserDataQueue(maxQueueSize, this->userClass);
 
+	TRACE("Running the data handler in new thread");
 	// This runs in its own thread and waits for data to arrive.
 	userDataQueue->waitForData();
 
-	// TODO: The internal start method isn't needed.  We should be able to call this classes io.run from this line.
+	TRACE("Running the asio io-service in new thread");
 	io_service_thread = new boost::thread(boost::bind(&DigitizerSimulator::_start, this));
 
 	stopped = false;
 	TRACE("Leaving Method");
-
 }
 
 void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
 	TRACE("Entered Method");
 
-	TRACE("Checking Timer isn't overdue");
+	TRACE("Checking Timer isn't overdue by a full cycle");
 	if ( (alarm->expires_from_now() + boost::posix_time::milliseconds(CALLBACK_INTERVAL)).is_negative() ) {
 		//TODO: Should this be a warning or an error?  Or an exception?
 		WARN("Data delivery is lagging from real-time.  Consider reducing the number of input files.");
@@ -191,10 +210,8 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 			WARN("Vector size provided: " << txData.size());
 		} else {
 			TRACE("Combining data with current collection");
-
 			retVec = txData + retVec;
 		}
-
 	}
 
 	TRACE("Delivering data to user class.");
@@ -207,8 +224,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	TRACE("Entered Method");
 
 	TiXmlDocument doc(filePath.string());
-	if(doc.LoadFile())
-	{
+	if(doc.LoadFile()) {
 		Transmitter * tx = new Transmitter();
 
 	    TiXmlHandle hDoc(&doc);
@@ -256,6 +272,8 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 			tx->setRdsText(DEFAULT_RDS_TEXT);
 
 		if (tx->init(centerFreq, FILE_INPUT_BLOCK_SIZE) != 0) {
+			delete(tx);
+			tx = NULL;
 			ERROR("Initialization of transmitter failed!")
 			TRACE("Leaving Method");
 			return -1;
@@ -265,7 +283,6 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 
 		transmitters.push_back(tx);
 		TRACE("Stored following: " << *tx);
-
 
 	} else {
 		ERROR("Malformed xml file: " << filePath.string());

@@ -73,7 +73,7 @@ private:
 	boost::asio::deadline_timer * alarm;
 	void _start();
 	boost::thread *io_service_thread;
-	bool stopped;
+	bool stopped, initialized;
 
 };
 
