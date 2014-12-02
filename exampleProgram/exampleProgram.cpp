@@ -18,6 +18,7 @@
 #include "SampleCallback.h"
 
 using namespace boost::filesystem;
+using namespace RFSimulators;
 
 int main(void) {
 

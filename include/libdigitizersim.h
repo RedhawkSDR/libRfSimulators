@@ -1,18 +1,19 @@
 #ifndef libdigitizersim_H
 #define libdigitizersim_H
 
-#include "boost/filesystem.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 #include <iostream>
 #include <stdio.h>
-#include "tinyxml.h"
-#include "SimDefaults.h"
-#include "CallbackInterface.h"
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
-#include "UserDataQueue.h"
+
+#include "CallbackInterface.h"
 
 using namespace boost::filesystem;
+
+namespace RFSimulators {
 
 class DigitizerSimulator {
 public:
@@ -65,7 +66,6 @@ public:
 private:
 	int loadCfgFile(path filPath);
 	CallbackInterface *userClass;
-	UserDataQueue *userDataQueue;
 	unsigned int maxQueueSize;
 
 	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
@@ -75,5 +75,5 @@ private:
 	boost::thread *io_service_thread;
 	bool stopped, initialized;
 };
-
+} // End of namespace
 #endif

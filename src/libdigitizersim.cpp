@@ -8,8 +8,10 @@ using namespace std;
 #include "SimDefaults.h"
 #include <complex>
 #include "Transmitter.h"
+#include "tinyxml.h"
+#include "UserDataQueue.h"
 
-
+namespace RFSimulators {
 // Call back interval is 1000ms / (samplerate / samples per block)
 #define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/FILE_INPUT_BLOCK_SIZE))// TODO: Make this configurable.
 
@@ -18,6 +20,7 @@ using namespace std;
 
 // This is put here rather than in the header file to prevent the user class from having to know about Transmitter.h
 std::vector<Transmitter*> transmitters;
+UserDataQueue *userDataQueue;
 
 DigitizerSimulator::DigitizerSimulator() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
@@ -305,3 +308,4 @@ void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
 	}
 }
 
+}

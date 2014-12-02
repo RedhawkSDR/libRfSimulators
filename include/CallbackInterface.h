@@ -13,12 +13,16 @@
 #define FILE_INPUT_BLOCK_SIZE 100000
 #define OUTPUT_SAMPLES_BLOCK_SIZE FILE_INPUT_BLOCK_SIZE*10
 
+
+namespace RFSimulators {
+
 class CallbackInterface
 {
 public:
     virtual void dataDelivery(std::valarray< std::complex<float> > samples) = 0;
 };
 
+};
 
 
 

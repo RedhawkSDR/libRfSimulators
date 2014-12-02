@@ -15,6 +15,7 @@
 #include <queue>
 #include "CallbackInterface.h"
 
+using namespace RFSimulators;
 
 class UserDataQueue {
 public:

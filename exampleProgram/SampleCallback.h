@@ -14,6 +14,8 @@
 #include <sys/time.h>
 #include <complex>
 
+using namespace RFSimulators;
+
 class SampleCallback: public CallbackInterface {
 public:
 	SampleCallback();
