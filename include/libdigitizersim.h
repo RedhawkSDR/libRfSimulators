@@ -30,11 +30,8 @@ public:
 	 */
 	int init(path cfgFilePath, CallbackInterface * userClass, int logLevel);
 
-	/**
-	 * Takes in a gain value, 0-11.  Units are in dB.
-	 * Returns 0 on success.  -1 on failure.
-	 */
-	int setGain(unsigned short gain);
+	void setGain(unsigned short gain);
+	unsigned short getGain();
 
 	/**
 	 * Set the size of the data queue that can build up if users do not
@@ -43,19 +40,16 @@ public:
 	void setQueueSize(unsigned short queueSize);
 
 
-	/**
-	 * Sets the center frequency between 80Mhz and 110Mhz.
-	 * Units are in Mhz.
-	 * Returns 0 on success, -1 on failure.
-	 */
-	int setCenterFrequency(float freq);
+	void setCenterFrequency(float freq);
+	float getCenterFrequency();
 
 	/**
 	 * Sets the sample rate.
-	 * Sample rate range is between 10kHz and 2Mhz
-	 * Returns 0 on success, -1 on failure.
+	 * Sample rate is limited to an even division of the max sample rate of 2,228,000 Samples per second
+	 * Sample rate must be more than the minimum sample rate of 2,228.
 	 */
-	int setSampleRate(float rate);
+	void setSampleRate(unsigned int sampleRate);
+	unsigned int getSampleRate();
 
 	void connectCallback(CallbackInterface * userClass);
 
@@ -74,6 +68,10 @@ private:
 	void _start();
 	boost::thread *io_service_thread;
 	bool stopped, initialized;
+	float tunedFreq;
+	unsigned short gain;
+	unsigned int sampleRate;
+
 };
 } // End of namespace
 #endif

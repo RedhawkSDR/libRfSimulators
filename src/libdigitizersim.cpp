@@ -31,6 +31,10 @@ DigitizerSimulator::DigitizerSimulator() {
 	alarm = NULL;
 	userClass = NULL;
 	userDataQueue = NULL;
+
+	tunedFreq = INITIAL_CENTER_FREQ;
+	gain = 0.0;
+	sampleRate = MAX_OUTPUT_SAMPLE_RATE;
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
@@ -202,6 +206,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 		transmitters[i]->join();
 	}
 
+
 	// Collect the data and add it to the return vector
 	TRACE("Collecting data");
 	for (i = 0; i < transmitters.size(); ++i) {
@@ -216,6 +221,16 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 			retVec = txData + retVec;
 		}
 	}
+
+	// TODO: Resample based on the sample rate!
+
+
+	// Apply gain factor
+	float linearGain = powf(10.0, gain/10.0);
+	retVec *= linearGain;
+
+
+	// TODO: Add noise
 
 	TRACE("Delivering data to user class.");
 	userDataQueue->deliverData(retVec);
@@ -282,7 +297,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 			return -1;
 		}
 
-		tx->setTunedFrequency(INITIAL_CENTER_FREQ);
+		tx->setTunedFrequency(tunedFreq);
 
 		transmitters.push_back(tx);
 		TRACE("Stored following: " << *tx);
@@ -306,6 +321,38 @@ void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
 	if(queueSize == 0) {
 		WARN("Queue Size has been set to zero.  You will not receive any data");
 	}
+}
+
+
+// TODO: Throw some exception if outside of some frequency range.
+void DigitizerSimulator::setCenterFrequency(float freq) {
+	tunedFreq = freq;
+
+	for (int i = 0; i < transmitters.size(); ++i) {
+		transmitters[i]->setTunedFrequency(tunedFreq);
+	}
+}
+
+float DigitizerSimulator::getCenterFrequency() {
+	return tunedFreq;
+}
+
+// TODO: Throw some exception if outside of range.
+void DigitizerSimulator::setGain(unsigned short gain) {
+	this->gain = gain;
+}
+
+unsigned short DigitizerSimulator::getGain() {
+	return gain;
+}
+
+// TODO: Throw some exception if outside range.
+void DigitizerSimulator::setSampleRate(unsigned int sampleRate) {
+	this->sampleRate = sampleRate;
+}
+
+unsigned int DigitizerSimulator::getSampleRate() {
+	return sampleRate;
 }
 
 }
