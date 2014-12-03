@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
+#include <complex>
 
 #include "CallbackInterface.h"
 
@@ -30,8 +31,8 @@ public:
 	 */
 	int init(path cfgFilePath, CallbackInterface * userClass, int logLevel);
 
-	void setGain(unsigned short gain);
-	unsigned short getGain();
+	void setGain(float gain);
+	float getGain();
 
 	/**
 	 * Set the size of the data queue that can build up if users do not
@@ -69,8 +70,12 @@ private:
 	boost::thread *io_service_thread;
 	bool stopped, initialized;
 	float tunedFreq;
-	unsigned short gain;
+	float gain;
 	unsigned int sampleRate;
+	std::valarray<std::complex<float> > awgnNoise;
+	std::valarray<std::complex<float> > postFiltArray, preFiltArray;
+
+	boost::mutex filterMutex;
 
 };
 } // End of namespace

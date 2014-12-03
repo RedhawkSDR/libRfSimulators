@@ -18,6 +18,7 @@
 #include "FirFilterDesigner.h"
 #include "fftw3.h"
 #include "fftw_allocator.h"
+#include "SimDefaults.h"
 
 extern "C" {
 #include "rds.h"
@@ -27,7 +28,6 @@ extern "C" {
 using namespace boost::filesystem;
 using namespace boost;
 
-#define FILTER_ATTENUATION 70 // dB
 #define FILTER_CUTOFF (0.5*0.5*(BASE_SAMPLE_RATE / MAX_OUTPUT_SAMPLE_RATE)) // normalized frequency
 
 class Transmitter {

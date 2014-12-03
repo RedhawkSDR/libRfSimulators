@@ -18,6 +18,8 @@ using namespace std;
 
 #define MAX_FREQUENCY_DEVIATION 75000.0
 
+#define FILTER_ATTENUATION 70 // dB
+
 static string DEFAULT_RDS_TEXT = "REDHAWK Radio, taking you to the cloud.";
 
 

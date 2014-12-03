@@ -32,7 +32,18 @@ int main(void) {
 
 	digSim.start();
 
-	sleep(3);
+	sleep(1);
+	digSim.setSampleRate(228000*1);
+	sleep(1);
+	digSim.setSampleRate(228000*2);
+	sleep(1);
+	digSim.setSampleRate(228000*3);
+	sleep(1);
+	digSim.setSampleRate(228000*4);
+	sleep(1);
+	digSim.setSampleRate(228000*5);
+	sleep(1);
+	digSim.setSampleRate(228000*6);
 
 	digSim.stop();
 

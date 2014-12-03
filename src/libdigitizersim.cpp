@@ -6,10 +6,12 @@ using namespace std;
 #include "boost/current_function.hpp"
 #include "CallbackInterface.h"
 #include "SimDefaults.h"
-#include <complex>
 #include "Transmitter.h"
 #include "tinyxml.h"
 #include "UserDataQueue.h"
+#include "FIRFilter.h"
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
 
 namespace RFSimulators {
 // Call back interval is 1000ms / (samplerate / samples per block)
@@ -17,10 +19,12 @@ namespace RFSimulators {
 
 #define INITIAL_CENTER_FREQ 88500000
 #define DEFAULT_QUEUE_SIZE 5
+#define SIGMA (0.1)
 
-// This is put here rather than in the header file to prevent the user class from having to know about Transmitter.h
+// This is put here rather than in the header file to prevent the user class from having to know about the classes used
 std::vector<Transmitter*> transmitters;
 UserDataQueue *userDataQueue;
+FIRFilter *filter;
 
 DigitizerSimulator::DigitizerSimulator() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
@@ -31,10 +35,27 @@ DigitizerSimulator::DigitizerSimulator() {
 	alarm = NULL;
 	userClass = NULL;
 	userDataQueue = NULL;
+	filter = NULL;
 
 	tunedFreq = INITIAL_CENTER_FREQ;
 	gain = 0.0;
 	sampleRate = MAX_OUTPUT_SAMPLE_RATE;
+
+
+	// Initialize our noise vector.  We always use the same noise vector to keep the processing down.
+	awgnNoise.resize(MAX_OUTPUT_SAMPLE_RATE);
+
+	boost::variate_generator<boost::mt19937, boost::normal_distribution<float> > generator(boost::mt19937(time(0)), boost::normal_distribution<float>(0.0, SIGMA));
+	for (int i = 0; i < awgnNoise.size(); ++i) {
+		awgnNoise[i] = std::complex<float>(generator(), generator());
+	}
+
+	preFiltArray.resize(OUTPUT_SAMPLES_BLOCK_SIZE, complex<float> (0.0, 0.0));
+
+
+	// Filter is used for the sample rate conversions
+	filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(sampleRate));
+
 }
 
 DigitizerSimulator::~DigitizerSimulator() {
@@ -54,6 +75,11 @@ DigitizerSimulator::~DigitizerSimulator() {
 	}
 
 	transmitters.clear();
+
+	if (filter) {
+		delete(filter);
+		filter = NULL;
+	}
 }
 
 int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
@@ -190,9 +216,6 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
 
-	std::valarray< complex<float> > retVec;
-	retVec.resize(OUTPUT_SAMPLES_BLOCK_SIZE, complex<float> (0.0, 0.0));
-
 	int i;
 	// Kick off all the worker threads
 	TRACE("Starting all of the worker threads");
@@ -212,25 +235,32 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	for (i = 0; i < transmitters.size(); ++i) {
 		std::valarray< std::complex<float> > txData = transmitters[i]->getData();
 
-		if (txData.size() != retVec.size()) {
+		if (txData.size() != preFiltArray.size()) {
 			WARN("Vector size miss-match on transmitter: " << transmitters[i]->getFilePath().string())
-			WARN("Vector size requested: " << retVec.size());
 			WARN("Vector size provided: " << txData.size());
 		} else {
 			TRACE("Combining data with current collection");
-			retVec = txData + retVec;
+			preFiltArray += txData;
 		}
 	}
 
-	// TODO: Resample based on the sample rate!
+	// So if the max rate was 1,000 and we want a sample rate of 250
+	// the puncture rate would be 4, we would keep 1 out of every 4 samples.
+	unsigned int punctureRate = MAX_OUTPUT_SAMPLE_RATE/sampleRate;
 
+	{
+		boost::mutex::scoped_lock lock(filterMutex);
+		filter->run();
+	}
+
+	int size = postFiltArray.size()/punctureRate;
+	std::valarray<std::complex<float> > retVec = postFiltArray[std::slice(0, size, punctureRate)];
 
 	// Apply gain factor
 	float linearGain = powf(10.0, gain/10.0);
 	retVec *= linearGain;
 
-
-	// TODO: Add noise
+	retVec += awgnNoise;
 
 	TRACE("Delivering data to user class.");
 	userDataQueue->deliverData(retVec);
@@ -338,17 +368,41 @@ float DigitizerSimulator::getCenterFrequency() {
 }
 
 // TODO: Throw some exception if outside of range.
-void DigitizerSimulator::setGain(unsigned short gain) {
+void DigitizerSimulator::setGain(float gain) {
 	this->gain = gain;
 }
 
-unsigned short DigitizerSimulator::getGain() {
+float DigitizerSimulator::getGain() {
 	return gain;
 }
 
 // TODO: Throw some exception if outside range.
 void DigitizerSimulator::setSampleRate(unsigned int sampleRate) {
-	this->sampleRate = sampleRate;
+
+	// Outside of range
+	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE || sampleRate < MAX_OUTPUT_SAMPLE_RATE/100) {
+		return;
+	}
+
+	// Not an integer multiple of max.
+	if ((int)MAX_OUTPUT_SAMPLE_RATE % sampleRate != 0) {
+		return;
+	}
+
+
+	{
+		boost::mutex::scoped_lock lock(filterMutex);
+
+		this->sampleRate = sampleRate;
+		if (filter) {
+			delete(filter);
+			filter = NULL;
+		}
+
+		float cutOff = (0.5*0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
+		filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), cutOff);
+	}
+
 }
 
 unsigned int DigitizerSimulator::getSampleRate() {
