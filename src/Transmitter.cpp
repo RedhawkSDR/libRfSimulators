@@ -152,7 +152,7 @@ int Transmitter::doWork() {
 	// Only do work if our frequency is within the bandwidth of the tuner.
 	TRACE("Checking if there is any reason to do work.");
 	if (abs(centerFrequency - tunedFrequency) > 0.5 * MAX_OUTPUT_SAMPLE_RATE) {
-		TRACE("Transmitter is not in tuned range.  Returning call zeros.");
+		TRACE("Transmitter is not in tuned range.  Returning all zeros.");
 		basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
 		return 0;
 	} else {

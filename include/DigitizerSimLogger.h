@@ -4,8 +4,8 @@
  *  Created on: Nov 19, 2014
  */
 
-#ifndef DIGITIZERSIMLOGGER_H_
-#define DIGITIZERSIMLOGGER_H_
+#ifndef LIBFMRDSSIMULATOR_INCLUDE_DIGITIZERSIMLOGGER_H_
+#define LIBFMRDSSIMULATOR_INCLUDE_DIGITIZERSIMLOGGER_H_
 // include log4cxx header files.
 #include "log4cxx/logger.h"
 #include "log4cxx/basicconfigurator.h"
@@ -24,4 +24,4 @@ static LoggerPtr logger(Logger::getLogger("DigitizerSim"));
 #define ERROR(msg) LOG4CXX_ERROR(logger, std::string(BOOST_CURRENT_FUNCTION)  + ":\t" +  msg);
 
 
-#endif /* DIGITIZERSIMLOGGER_H_ */
+#endif /* LIBFMRDSSIMULATOR_INCLUDE_DIGITIZERSIMLOGGER_H_ */

@@ -13,39 +13,40 @@
  ============================================================================
  */
 
-#include "libdigitizersim.h"
-#include "boost/filesystem.hpp"
 #include "SampleCallback.h"
+#include "RfSimulatorFactory.h"
+#include "RfSimulator.h"
 
-using namespace boost::filesystem;
-using namespace RFSimulators;
+using namespace RfSimulators;
 
 int main(void) {
 
 	SampleCallback callback;
 
-	path p("/tmp/testDir");
+	std::string p("/tmp/testDir");
 
-	DigitizerSimulator digSim;
+	RfSimulator * digSim = RfSimulatorFactory::createFmRdsSimulator();
 
-	digSim.init(p, &callback, 0);
+	digSim->init(p, &callback, FATAL);
 
-	digSim.start();
+	digSim->start();
 
 	sleep(1);
-	digSim.setSampleRate(228000*1);
+	digSim->setSampleRate(228000*1);
 	sleep(1);
-	digSim.setSampleRate(228000*2);
+	digSim->setSampleRate(228000*2);
 	sleep(1);
-	digSim.setSampleRate(228000*3);
+	digSim->setSampleRate(228000*3);
 	sleep(1);
-	digSim.setSampleRate(228000*4);
+	digSim->setSampleRate(228000*4);
 	sleep(1);
-	digSim.setSampleRate(228000*5);
+	digSim->setSampleRate(228000*5);
 	sleep(1);
-	digSim.setSampleRate(228000*6);
+	digSim->setSampleRate(228000*6);
 
-	digSim.stop();
+	digSim->stop();
+
+	delete(digSim);
 
   return 0;
 }

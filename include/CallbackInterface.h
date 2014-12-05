@@ -4,8 +4,8 @@
  *  Created on: Nov 18, 2014
  */
 
-#ifndef CALLBACKINTERFACE_H_
-#define CALLBACKINTERFACE_H_
+#ifndef LIBFMRDSSIMULATOR_INCLUDE_CALLBACKINTERFACE_H_
+#define LIBFMRDSSIMULATOR_INCLUDE_CALLBACKINTERFACE_H_
 
 #include <valarray>
 #include <complex>
@@ -14,7 +14,7 @@
 #define OUTPUT_SAMPLES_BLOCK_SIZE FILE_INPUT_BLOCK_SIZE*10
 
 
-namespace RFSimulators {
+namespace RfSimulators {
 
 class CallbackInterface
 {
@@ -26,4 +26,4 @@ public:
 
 
 
-#endif /* CALLBACKINTERFACE_H_ */
+#endif /* LIBFMRDSSIMULATOR_INCLUDE_CALLBACKINTERFACE_H_ */

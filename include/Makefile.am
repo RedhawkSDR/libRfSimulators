@@ -1,2 +1,2 @@
-otherincludedir = $(includedir)/RFSimulators
-otherinclude_HEADERS = libdigitizersim.h CallbackInterface.h
+otherincludedir = $(includedir)/RfSimulators
+otherinclude_HEADERS = RfSimulator.h RfSimulatorFactory.h CallbackInterface.h

@@ -1,6 +1,8 @@
+
+
 using namespace std;
 
-#include "libdigitizersim.h"
+#include "FmRdsSimulatorImpl.h"
 #include "boost/bind.hpp"
 #include "DigitizerSimLogger.h"
 #include "boost/current_function.hpp"
@@ -13,7 +15,7 @@ using namespace std;
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 
-namespace RFSimulators {
+namespace RfSimulators {
 // Call back interval is 1000ms / (samplerate / samples per block)
 #define CALLBACK_INTERVAL (1000.0/(BASE_SAMPLE_RATE/FILE_INPUT_BLOCK_SIZE))// TODO: Make this configurable.
 
@@ -26,7 +28,7 @@ std::vector<Transmitter*> transmitters;
 UserDataQueue *userDataQueue;
 FIRFilter *filter;
 
-DigitizerSimulator::DigitizerSimulator() {
+FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
 	stopped = true;
 	initialized = false;
@@ -54,11 +56,12 @@ DigitizerSimulator::DigitizerSimulator() {
 
 
 	// Filter is used for the sample rate conversions
-	filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(sampleRate));
+	float cutOff = (0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
+	filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(cutOff));
 
 }
 
-DigitizerSimulator::~DigitizerSimulator() {
+FmRdsSimulatorImpl::~FmRdsSimulatorImpl() {
 	if (not stopped) {
 		stop();
 	}
@@ -82,7 +85,9 @@ DigitizerSimulator::~DigitizerSimulator() {
 	}
 }
 
-int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, int logLevel) {
+int FmRdsSimulatorImpl::init(std::string cfgFileDir, CallbackInterface * userClass, LogLevel logLevel) {
+
+	boost::filesystem::path cfgFilePath(cfgFileDir);
 
 	if (not initialized) {
 
@@ -94,22 +99,23 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 
 		switch ( logLevel )
 		{
-		 case 0:
+		 case FATAL:
+			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getFatal());
+			break;
+		 case ERROR:
 			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getError());
 			break;
-		 case 1:
-			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
+		 case WARN:
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
 			break;
-		 case 2:
+		 case DEBUG:
 			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
 			break;
-		 case 3:
-			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getTrace());
-			break;
+		 case TRACE:
+			 log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getTrace());
+			 break;
 		}
 
-		if (logLevel > 3)
-			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getAll());
 	}
 	TRACE("Entered Method");
 
@@ -146,7 +152,7 @@ int DigitizerSimulator::init(path cfgFilePath, CallbackInterface * userClass, in
 }
 
 
-void DigitizerSimulator::stop() {
+void FmRdsSimulatorImpl::stop() {
 	TRACE("Entered Method");
 
 	// Stop the Boost Asynchronous Service
@@ -175,18 +181,18 @@ void DigitizerSimulator::stop() {
 	TRACE("Leaving Method");
 }
 
-void DigitizerSimulator::_start() {
+void FmRdsSimulatorImpl::_start() {
 	TRACE("Entered Method");
 	alarm->expires_from_now(boost::posix_time::milliseconds(CALLBACK_INTERVAL));
 	io.run();
 	TRACE("Leaving Method");
 }
 
-void DigitizerSimulator::start() {
+void FmRdsSimulatorImpl::start() {
 	TRACE("Entered Method");
 
 	TRACE("Binding deadline_timer to dataGrab method");
-	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
+	alarm->async_wait(boost::bind(&FmRdsSimulatorImpl::dataGrab, this, boost::asio::placeholders::error, alarm));
 
 	TRACE("Creating a data queue object for user data");
 	userDataQueue = new UserDataQueue(maxQueueSize, this->userClass);
@@ -196,13 +202,13 @@ void DigitizerSimulator::start() {
 	userDataQueue->waitForData();
 
 	TRACE("Running the asio io-service in new thread");
-	io_service_thread = new boost::thread(boost::bind(&DigitizerSimulator::_start, this));
+	io_service_thread = new boost::thread(boost::bind(&FmRdsSimulatorImpl::_start, this));
 
 	stopped = false;
 	TRACE("Leaving Method");
 }
 
-void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
+void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm) {
 	TRACE("Entered Method");
 
 	TRACE("Checking Timer isn't overdue by a full cycle");
@@ -214,7 +220,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	TRACE("Reseting alarm");
 	// Reset timer
 	alarm->expires_at(alarm->expires_at() + boost::posix_time::milliseconds(CALLBACK_INTERVAL));
-	alarm->async_wait(boost::bind(&DigitizerSimulator::dataGrab, this, boost::asio::placeholders::error, alarm));
+	alarm->async_wait(boost::bind(&FmRdsSimulatorImpl::dataGrab, this, boost::asio::placeholders::error, alarm));
 
 	int i;
 	// Kick off all the worker threads
@@ -229,6 +235,8 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 		transmitters[i]->join();
 	}
 
+	// Clear out the old data
+	preFiltArray *= 0;
 
 	// Collect the data and add it to the return vector
 	TRACE("Collecting data");
@@ -268,7 +276,7 @@ void DigitizerSimulator::dataGrab(const boost::system::error_code& error, boost:
 	TRACE("Leaving Method");
 }
 
-int DigitizerSimulator::loadCfgFile(path filePath) {
+int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 	TRACE("Entered Method");
 
 	TiXmlDocument doc(filePath.string());
@@ -342,7 +350,7 @@ int DigitizerSimulator::loadCfgFile(path filePath) {
 	return 0;
 }
 
-void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
+void FmRdsSimulatorImpl::setQueueSize(unsigned short queueSize) {
 	if (userDataQueue)
 		userDataQueue->setMaxQueueSize(queueSize);
 
@@ -355,7 +363,7 @@ void DigitizerSimulator::setQueueSize(unsigned short queueSize) {
 
 
 // TODO: Throw some exception if outside of some frequency range.
-void DigitizerSimulator::setCenterFrequency(float freq) {
+void FmRdsSimulatorImpl::setCenterFrequency(float freq) {
 	tunedFreq = freq;
 
 	for (int i = 0; i < transmitters.size(); ++i) {
@@ -363,21 +371,21 @@ void DigitizerSimulator::setCenterFrequency(float freq) {
 	}
 }
 
-float DigitizerSimulator::getCenterFrequency() {
+float FmRdsSimulatorImpl::getCenterFrequency() {
 	return tunedFreq;
 }
 
 // TODO: Throw some exception if outside of range.
-void DigitizerSimulator::setGain(float gain) {
+void FmRdsSimulatorImpl::setGain(float gain) {
 	this->gain = gain;
 }
 
-float DigitizerSimulator::getGain() {
+float FmRdsSimulatorImpl::getGain() {
 	return gain;
 }
 
 // TODO: Throw some exception if outside range.
-void DigitizerSimulator::setSampleRate(unsigned int sampleRate) {
+void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) {
 
 	// Outside of range
 	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE || sampleRate < MAX_OUTPUT_SAMPLE_RATE/100) {
@@ -399,13 +407,13 @@ void DigitizerSimulator::setSampleRate(unsigned int sampleRate) {
 			filter = NULL;
 		}
 
-		float cutOff = (0.5*0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
+		float cutOff = (0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
 		filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), cutOff);
 	}
 
 }
 
-unsigned int DigitizerSimulator::getSampleRate() {
+unsigned int FmRdsSimulatorImpl::getSampleRate() {
 	return sampleRate;
 }
 

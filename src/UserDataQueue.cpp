@@ -8,7 +8,7 @@
 #include "DigitizerSimLogger.h"
 #include "boost/bind.hpp"
 
-using namespace RFSimulators;
+using namespace RfSimulators;
 
 UserDataQueue::UserDataQueue(unsigned short maxQueueDepth, CallbackInterface *userClass) {
 	this->maxQueueDepth = maxQueueDepth;

@@ -4,8 +4,8 @@
  *  Created on: Nov 19, 2014
  */
 
-#ifndef SAMPLECALLBACK_H_
-#define SAMPLECALLBACK_H_
+#ifndef LIBFMRDSSIMULATOR_EXAMPLEPROGRAM_SAMPLECALLBACK_H_
+#define LIBFMRDSSIMULATOR_EXAMPLEPROGRAM_SAMPLECALLBACK_H_
 
 #include "CallbackInterface.h"
 #include <iostream>
@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include <complex>
 
-using namespace RFSimulators;
+using namespace RfSimulators;
 
 class SampleCallback: public CallbackInterface {
 public:
@@ -27,4 +27,4 @@ private:
 	struct timeval tp;
 };
 
-#endif /* SAMPLECALLBACK_H_ */
+#endif /* LIBFMRDSSIMULATOR_EXAMPLEPROGRAM_SAMPLECALLBACK_H_ */

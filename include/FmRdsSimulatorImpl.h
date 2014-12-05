@@ -1,5 +1,5 @@
-#ifndef libdigitizersim_H
-#define libdigitizersim_H
+#ifndef fmrdssimulatorimpl_H
+#define fmrdssimulatorimpl_H
 
 #include <boost/filesystem.hpp>
 #include <boost/thread.hpp>
@@ -9,17 +9,18 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <queue>
 #include <complex>
+#include "RfSimulator.h"
 
 #include "CallbackInterface.h"
 
 using namespace boost::filesystem;
 
-namespace RFSimulators {
+namespace RfSimulators {
 
-class DigitizerSimulator {
+class FmRdsSimulatorImpl : public RfSimulator {
 public:
-	DigitizerSimulator();
-	~DigitizerSimulator();
+	FmRdsSimulatorImpl();
+	~FmRdsSimulatorImpl();
 
 	/**
 	 * Initializes the simulator.
@@ -29,7 +30,7 @@ public:
 	 *  logLevel - The logging level of the library. Set to -1 to turn off, 0 for ERROR, 1 for WARN, 2 for DEBUG, 3 for TRACE.
 	 * Returns 0 on success, -1 on failure.
 	 */
-	int init(path cfgFilePath, CallbackInterface * userClass, int logLevel);
+	int init(std::string cfgFilePath, CallbackInterface * userClass, LogLevel logLevel);
 
 	void setGain(float gain);
 	float getGain();
@@ -51,8 +52,6 @@ public:
 	 */
 	void setSampleRate(unsigned int sampleRate);
 	unsigned int getSampleRate();
-
-	void connectCallback(CallbackInterface * userClass);
 
 	void start();
 

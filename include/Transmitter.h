@@ -4,8 +4,8 @@
  *  Created on: Nov 17, 2014
  */
 
-#ifndef TRANSMITTER_H_
-#define TRANSMITTER_H_
+#ifndef LIBFMRDSSIMULATOR_INCLUDE_TRANSMITTER_H_
+#define LIBFMRDSSIMULATOR_INCLUDE_TRANSMITTER_H_
 
 #include "boost/filesystem.hpp"
 #include <string>
@@ -72,4 +72,4 @@ private:
 
 };
 
-#endif /* TRANSMITTER_H_ */
+#endif /* LIBFMRDSSIMULATOR_INCLUDE_TRANSMITTER_H_ */

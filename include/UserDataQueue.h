@@ -4,8 +4,8 @@
  *  Created on: Nov 26, 2014
  */
 
-#ifndef USERDATAQUEUE_H_
-#define USERDATAQUEUE_H_
+#ifndef LIBFMRDSSIMULATOR_INCLUDE_USERDATAQUEUE_H_
+#define LIBFMRDSSIMULATOR_INCLUDE_USERDATAQUEUE_H_
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread.hpp>
@@ -15,7 +15,7 @@
 #include <queue>
 #include "CallbackInterface.h"
 
-using namespace RFSimulators;
+using namespace RfSimulators;
 
 class UserDataQueue {
 public:
@@ -41,4 +41,4 @@ private:
 	boost::thread *waitForDataThread;
 };
 
-#endif /* USERDATAQUEUE_H_ */
+#endif /* LIBFMRDSSIMULATOR_INCLUDE_USERDATAQUEUE_H_ */
