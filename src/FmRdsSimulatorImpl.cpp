@@ -14,6 +14,8 @@ using namespace std;
 #include "FIRFilter.h"
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
+#include <float.h>
+
 
 namespace RfSimulators {
 // Call back interval is 1000ms / (samplerate / samples per block)
@@ -32,6 +34,10 @@ FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
 	stopped = true;
 	initialized = false;
+
+	// Initialize to 0 -> float max, no harm in this.
+	minFreq = 0.0;
+	maxFreq = FLT_MAX;
 
 	io_service_thread = NULL;
 	alarm = NULL;
@@ -351,6 +357,7 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 }
 
 void FmRdsSimulatorImpl::setQueueSize(unsigned short queueSize) {
+	TRACE("Entered Method");
 	if (userDataQueue)
 		userDataQueue->setMaxQueueSize(queueSize);
 
@@ -359,62 +366,95 @@ void FmRdsSimulatorImpl::setQueueSize(unsigned short queueSize) {
 	if(queueSize == 0) {
 		WARN("Queue Size has been set to zero.  You will not receive any data");
 	}
+	TRACE("Leaving Method");
 }
 
 
-// TODO: Throw some exception if outside of some frequency range.
-void FmRdsSimulatorImpl::setCenterFrequency(float freq) {
+void FmRdsSimulatorImpl::setCenterFrequency(float freq) throw(OutOfRangeException){
+	TRACE("Entered Method");
+
+	if (freq > maxFreq || freq < minFreq) {
+		WARN("Frequency out of range");
+		throw OutOfRangeException();
+	}
+
 	tunedFreq = freq;
 
 	for (int i = 0; i < transmitters.size(); ++i) {
 		transmitters[i]->setTunedFrequency(tunedFreq);
 	}
+	TRACE("Leaving Method");
 }
 
 float FmRdsSimulatorImpl::getCenterFrequency() {
+	TRACE("Entered Method");
+	TRACE("Leaving Method");
 	return tunedFreq;
 }
 
 // TODO: Throw some exception if outside of range.
-void FmRdsSimulatorImpl::setGain(float gain) {
+void FmRdsSimulatorImpl::setGain(float gain) throw(OutOfRangeException) {
+	TRACE("Entered Method");
 	this->gain = gain;
+	TRACE("Leaving Method");
 }
 
 float FmRdsSimulatorImpl::getGain() {
+	TRACE("Entered Method");
+	TRACE("Leaving Method");
 	return gain;
 }
 
 // TODO: Throw some exception if outside range.
-void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) {
-
+void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidValue) {
+	TRACE("Entered Method");
 	// Outside of range
 	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE || sampleRate < MAX_OUTPUT_SAMPLE_RATE/100) {
+		WARN("Sample rate is higher than max sample rate, rejecting request.");
+		throw InvalidValue();
 		return;
 	}
 
 	// Not an integer multiple of max.
 	if ((int)MAX_OUTPUT_SAMPLE_RATE % sampleRate != 0) {
+		WARN("Sample rate is not an integer multiple of max output rate, rejecting request.");
+		throw InvalidValue();
 		return;
 	}
 
 
 	{
+		TRACE("Locking filterMutex")
 		boost::mutex::scoped_lock lock(filterMutex);
-
+		TRACE("filterMutex Locked")
 		this->sampleRate = sampleRate;
+
+		TRACE("Deleting current filter")
 		if (filter) {
 			delete(filter);
 			filter = NULL;
 		}
 
 		float cutOff = (0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
+
+		TRACE("Creating new filter with cut off of " << cutOff);
 		filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), cutOff);
 	}
 
+	TRACE("Leaving Method");
 }
 
 unsigned int FmRdsSimulatorImpl::getSampleRate() {
+	TRACE("Entered Method");
+	TRACE("Leaving Method");
 	return sampleRate;
+}
+
+void FmRdsSimulatorImpl::setCenterFrequencyRange(float minFreq, float maxFreq) {
+	TRACE("Entered Method");
+	this->minFreq= minFreq;
+	this->maxFreq = maxFreq;
+	TRACE("Leaving Method");
 }
 
 }

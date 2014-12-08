@@ -1,2 +1,2 @@
 otherincludedir = $(includedir)/RfSimulators
-otherinclude_HEADERS = RfSimulator.h RfSimulatorFactory.h CallbackInterface.h
+otherinclude_HEADERS = RfSimulator.h RfSimulatorFactory.h CallbackInterface.h Exceptions.h

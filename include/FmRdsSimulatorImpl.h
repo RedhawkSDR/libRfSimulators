@@ -32,7 +32,7 @@ public:
 	 */
 	int init(std::string cfgFilePath, CallbackInterface * userClass, LogLevel logLevel);
 
-	void setGain(float gain);
+	void setGain(float gain) throw(OutOfRangeException);
 	float getGain();
 
 	/**
@@ -42,7 +42,8 @@ public:
 	void setQueueSize(unsigned short queueSize);
 
 
-	void setCenterFrequency(float freq);
+	void setCenterFrequency(float freq) throw(OutOfRangeException);
+	void setCenterFrequencyRange(float minFreq, float maxFreq);
 	float getCenterFrequency();
 
 	/**
@@ -50,7 +51,7 @@ public:
 	 * Sample rate is limited to an even division of the max sample rate of 2,228,000 Samples per second
 	 * Sample rate must be more than the minimum sample rate of 2,228.
 	 */
-	void setSampleRate(unsigned int sampleRate);
+	void setSampleRate(unsigned int sampleRate) throw(InvalidValue);
 	unsigned int getSampleRate();
 
 	void start();
@@ -73,6 +74,8 @@ private:
 	unsigned int sampleRate;
 	std::valarray<std::complex<float> > awgnNoise;
 	std::valarray<std::complex<float> > postFiltArray, preFiltArray;
+	float maxFreq, minFreq;
+
 
 	boost::mutex filterMutex;
 
