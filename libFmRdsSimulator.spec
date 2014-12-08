@@ -8,13 +8,17 @@ License:        GPLv3
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  autoconf automake libtool 
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
+BuildRequires:  autoconf automake libtool gcc-c++
 BuildRequires:  boost-devel >= 1.41
-%else
-BuildRequires:  boost141-devel
-%endif
+BuildRequires:  tinyxml-devel >= 2.6.1
+BuildRequires:  libsndfile-devel >= 1.0
+BuildRequires:  log4cxx-devel >= 0.10.0
+BuildRequires:  fftw-devel >= 3.0.0
 
+Requires:  	libsndfile >= 1.0
+Requires:	boost >= 1.41
+Requires:	log4cxx >= 0.10.0
+Requires:	fftw >= 3.0.0
 %description
 RF Simulator Library %{name}
  * Commit: __REVISION__
@@ -39,31 +43,25 @@ Development headers and libraries for %{name}
 
 
 %build
-pushd cpp
 ./reconf
 %configure
 make %{?_smp_mflags}
-popd
 
 
 %install
 rm -rf $RPM_BUILD_ROOT
-pushd cpp
 make install DESTDIR=$RPM_BUILD_ROOT
-popd
 
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-
 %files
-%defattr(-,root,root,-)
-%{_prefix}/dom/deps/%{name}/dsp.spd.xml
-%{_prefix}/dom/deps/%{name}/cpp
+%doc AUTHORS COPYING
+%{_libdir}/*.so.*
 
 %files devel
-%defattr(-,root,root,-)
-%{_prefix}/dom/deps/%{name}/cpp/include
-%{_prefix}/dom/deps/%{name}/cpp/lib/pkgconfig
-
+%{_includedir}/*
+%{_libdir}/*.so
+%{_libdir}/*.la
+%{_libdir}/*.a

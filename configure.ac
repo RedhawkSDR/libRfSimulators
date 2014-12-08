@@ -15,6 +15,8 @@ AC_CHECK_HEADERS([tinyxml.h],,[AC_MSG_ERROR(tinyxml-devel must be installed)])
 AC_CHECK_HEADERS([sndfile.h],,[AC_MSG_ERROR(libsndfile-devel must be installed)])
 AC_CHECK_HEADERS([log4cxx/log4cxx.h],,[AC_MSG_ERROR(log4cxx-devel must be installed)])
 
+PKG_CHECK_MODULES([PROJECTDEPS],   [fftw3 >= 3.0 fftw3f >= 3.0])
+
 dnl Initialize automake
 AM_INIT_AUTOMAKE
 
