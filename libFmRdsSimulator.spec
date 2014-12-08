@@ -6,6 +6,7 @@ Summary:        RF Simulator Library - FmRdsSimulator
 Group:          REDHAWK
 License:        GPLv3
 Source0:        %{name}-%{version}.tar.gz
+Source1:	libFmRdsSimulatorExamples.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  autoconf automake libtool gcc-c++
@@ -51,7 +52,7 @@ make %{?_smp_mflags}
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-
+tar -xfzv libFmRdsSimulatorExamples.tar.gz -C $RPM_BUILD_ROOT/%{_datarootdir}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
