@@ -444,7 +444,7 @@ void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidVal
 		WARN("User requested sample rate of " << sampleRate << " is higher than max: " << MAX_OUTPUT_SAMPLE_RATE);
 		INFO("Sample Rate request: " << sampleRate);
 		sampleRate = MAX_OUTPUT_SAMPLE_RATE;
-	} else if (sampleRate < MAX_OUTPUT_SAMPLE_RATE) {
+	} else if (sampleRate < MIN_OUTPUT_SAMPLE_RATE) {
 		WARN("User requested sample rate of " << sampleRate << " is lower than min: " << MIN_OUTPUT_SAMPLE_RATE);
 		INFO("Sample Rate request: " << sampleRate);
 	}
