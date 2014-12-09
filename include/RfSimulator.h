@@ -16,6 +16,7 @@ namespace RfSimulators {
 enum LogLevel {
 	TRACE,
 	DEBUG,
+	INFO,
 	WARN,
 	ERROR,
 	FATAL,
@@ -29,6 +30,7 @@ public:
 	virtual int init(std::string cfgFilePath, CallbackInterface * userClass, LogLevel level) = 0;
 
 	virtual void setCenterFrequencyRange(float freqMin, float freqMax) = 0;
+	virtual void setGainRange(float freqMin, float freqMax) = 0;
 
 	virtual void setGain(float gain) throw(OutOfRangeException) = 0;
 	virtual float getGain() = 0;

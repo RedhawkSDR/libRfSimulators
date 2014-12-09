@@ -47,6 +47,8 @@ FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 
 	tunedFreq = INITIAL_CENTER_FREQ;
 	gain = 0.0;
+	minGain = -100;
+	maxGain = 100;
 	sampleRate = MAX_OUTPUT_SAMPLE_RATE;
 
 
@@ -97,6 +99,8 @@ int FmRdsSimulatorImpl::init(std::string cfgFileDir, CallbackInterface * userCla
 
 	if (not initialized) {
 
+		// TODO: This sets the root logger which is also what redhawk uses so it's a bit of a pain.
+		// TODO: Maybe we have a second init method that takes in a logging config so we can just pass the current?
 		// Set up a simple configuration that logs on the console.
 		BasicConfigurator::configure();
 
@@ -114,6 +118,9 @@ int FmRdsSimulatorImpl::init(std::string cfgFileDir, CallbackInterface * userCla
 		 case WARN:
 			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getWarn());
 			break;
+		 case INFO:
+			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getInfo());
+			break;
 		 case DEBUG:
 			log4cxx::Logger::getRootLogger()->setLevel(log4cxx::Level::getDebug());
 			break;
@@ -130,6 +137,7 @@ int FmRdsSimulatorImpl::init(std::string cfgFileDir, CallbackInterface * userCla
 		return -1;
 	}
 
+	// Somewhat of a useless check
 	if (userClass == NULL) {
 		ERROR("User class is NULL!");
 		return -1;
@@ -161,27 +169,41 @@ int FmRdsSimulatorImpl::init(std::string cfgFileDir, CallbackInterface * userCla
 void FmRdsSimulatorImpl::stop() {
 	TRACE("Entered Method");
 
+	if (stopped) {
+		WARN("FmRdsSimulator already stopped.  Call start before stopping.");
+		return;
+	}
+
+	TRACE("Stopping the Boost Async service");
 	// Stop the Boost Asynchronous Service
 	io.stop();
 
+	TRACE("Joining all io service threads");
 	// It was running in its own thread so make sure it completes
 	io_service_thread->join();
 
+	TRACE("Deleting the io service thread object");
 	// Then destroy the memory for that thread
 	if (io_service_thread) {
 		delete(io_service_thread);
 		io_service_thread = NULL;
 	}
 
+	TRACE("Shutting down the user data queue");
 	// Now shutdown the data queue
 	userDataQueue->shutDown();
 
+	TRACE("Deleting the user data queue object");
 	// And delete it.
 	if (userDataQueue) {
 		delete(userDataQueue);
 		userDataQueue = NULL;
 	}
 
+	TRACE("Reseting the Boost Async service in preperation for next run");
+	io.reset();
+
+	TRACE("Stop completed");
 	stopped = true;
 
 	TRACE("Leaving Method");
@@ -197,6 +219,11 @@ void FmRdsSimulatorImpl::_start() {
 void FmRdsSimulatorImpl::start() {
 	TRACE("Entered Method");
 
+	if (not stopped) {
+		WARN("FmRdsSimulator already started.  Stop before calling start");
+		return;
+	}
+
 	TRACE("Binding deadline_timer to dataGrab method");
 	alarm->async_wait(boost::bind(&FmRdsSimulatorImpl::dataGrab, this, boost::asio::placeholders::error, alarm));
 
@@ -211,6 +238,7 @@ void FmRdsSimulatorImpl::start() {
 	io_service_thread = new boost::thread(boost::bind(&FmRdsSimulatorImpl::_start, this));
 
 	stopped = false;
+
 	TRACE("Leaving Method");
 }
 
@@ -392,9 +420,14 @@ float FmRdsSimulatorImpl::getCenterFrequency() {
 	return tunedFreq;
 }
 
-// TODO: Throw some exception if outside of range.
 void FmRdsSimulatorImpl::setGain(float gain) throw(OutOfRangeException) {
 	TRACE("Entered Method");
+	if (gain > maxGain || gain < minGain) {
+		ERROR("Gain value of: " << gain << " is out of the acceptable range of [" << minGain << ", " << maxGain << "]");
+		throw OutOfRangeException();
+	}
+
+	INFO("Setting gain to " << gain);
 	this->gain = gain;
 	TRACE("Leaving Method");
 }
@@ -405,29 +438,29 @@ float FmRdsSimulatorImpl::getGain() {
 	return gain;
 }
 
-// TODO: Throw some exception if outside range.
 void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidValue) {
 	TRACE("Entered Method");
-	// Outside of range
-	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE || sampleRate < MAX_OUTPUT_SAMPLE_RATE/100) {
-		WARN("Sample rate is higher than max sample rate, rejecting request.");
-		throw InvalidValue();
-		return;
+	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE) {
+		WARN("User requested sample rate of " << sampleRate << " is higher than max: " << MAX_OUTPUT_SAMPLE_RATE);
+		INFO("Sample Rate request: " << sampleRate);
+		sampleRate = MAX_OUTPUT_SAMPLE_RATE;
+	} else if (sampleRate < MAX_OUTPUT_SAMPLE_RATE) {
+		WARN("User requested sample rate of " << sampleRate << " is lower than min: " << MIN_OUTPUT_SAMPLE_RATE);
+		INFO("Sample Rate request: " << sampleRate);
 	}
 
-	// Not an integer multiple of max.
-	if ((int)MAX_OUTPUT_SAMPLE_RATE % sampleRate != 0) {
-		WARN("Sample rate is not an integer multiple of max output rate, rejecting request.");
-		throw InvalidValue();
-		return;
-	}
+	unsigned int closestInteger = round(MAX_OUTPUT_SAMPLE_RATE / (float)sampleRate);
+	unsigned int closestSampleRate = round(MAX_OUTPUT_SAMPLE_RATE / closestInteger);
+
+
+		INFO("Setting sample rate to closest available: " << closestSampleRate);
 
 
 	{
 		TRACE("Locking filterMutex")
 		boost::mutex::scoped_lock lock(filterMutex);
 		TRACE("filterMutex Locked")
-		this->sampleRate = sampleRate;
+		this->sampleRate = closestSampleRate;
 
 		TRACE("Deleting current filter")
 		if (filter) {
@@ -435,7 +468,7 @@ void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidVal
 			filter = NULL;
 		}
 
-		float cutOff = (0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
+		float cutOff = (0.5*(closestSampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
 
 		TRACE("Creating new filter with cut off of " << cutOff);
 		filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), cutOff);
@@ -454,6 +487,13 @@ void FmRdsSimulatorImpl::setCenterFrequencyRange(float minFreq, float maxFreq) {
 	TRACE("Entered Method");
 	this->minFreq= minFreq;
 	this->maxFreq = maxFreq;
+	TRACE("Leaving Method");
+}
+
+void FmRdsSimulatorImpl::setGainRange(float minGain, float maxGain) {
+	TRACE("Entered Method");
+	this->minGain= minGain;
+	this->maxGain = maxGain;
 	TRACE("Leaving Method");
 }
 
