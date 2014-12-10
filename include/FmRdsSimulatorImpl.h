@@ -10,6 +10,9 @@
 #include <queue>
 #include <complex>
 #include "RfSimulator.h"
+#include "Transmitter.h"
+#include "UserDataQueue.h"
+#include "FIRFilter.h"
 
 #include "CallbackInterface.h"
 
@@ -54,26 +57,34 @@ public:
 
 	void stop();
 
+	void addNoise(bool shouldAddNoise);
+	void setNoiseSigma(float sigma);
+	float getNoiseSigma();
+
 private:
 	int loadCfgFile(path filPath);
 	CallbackInterface *userClass;
 	unsigned int maxQueueSize;
 
 	void dataGrab(const boost::system::error_code& error, boost::asio::deadline_timer* alarm);
+	void fillNoiseArray();
+
 	boost::asio::io_service io;
 	boost::asio::deadline_timer * alarm;
 	void _start();
 	boost::thread *io_service_thread;
-	bool stopped, initialized;
+	bool stopped, initialized, shouldAddNoise;
 	float tunedFreq;
 	float gain;
 	unsigned int sampleRate;
 	std::valarray<std::complex<float> > awgnNoise;
 	std::valarray<std::complex<float> > postFiltArray, preFiltArray;
-	float maxFreq, minFreq, minGain, maxGain;
+	float maxFreq, minFreq, minGain, maxGain, noiseSigma;
+	std::vector<Transmitter*> transmitters;
+	UserDataQueue *userDataQueue;
+	FIRFilter *filter;
 
-
-	boost::mutex filterMutex;
+	boost::mutex filterMutex, noiseArrayMutex;
 
 };
 } // End of namespace

@@ -8,10 +8,8 @@ using namespace std;
 #include "boost/current_function.hpp"
 #include "CallbackInterface.h"
 #include "SimDefaults.h"
-#include "Transmitter.h"
 #include "tinyxml.h"
-#include "UserDataQueue.h"
-#include "FIRFilter.h"
+
 #include <boost/random.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <float.h>
@@ -23,17 +21,13 @@ namespace RfSimulators {
 
 #define INITIAL_CENTER_FREQ 88500000
 #define DEFAULT_QUEUE_SIZE 5
-#define SIGMA (0.1)
 
-// This is put here rather than in the header file to prevent the user class from having to know about the classes used
-std::vector<Transmitter*> transmitters;
-UserDataQueue *userDataQueue;
-FIRFilter *filter;
 
 FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	maxQueueSize = DEFAULT_QUEUE_SIZE;
 	stopped = true;
 	initialized = false;
+	shouldAddNoise = true;
 
 	// Initialize to 0 -> float max, no harm in this.
 	minFreq = 0.0;
@@ -50,15 +44,13 @@ FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	minGain = -100;
 	maxGain = 100;
 	sampleRate = MAX_OUTPUT_SAMPLE_RATE;
+	noiseSigma = 0.1;
 
 
 	// Initialize our noise vector.  We always use the same noise vector to keep the processing down.
 	awgnNoise.resize(MAX_OUTPUT_SAMPLE_RATE);
 
-	boost::variate_generator<boost::mt19937, boost::normal_distribution<float> > generator(boost::mt19937(time(0)), boost::normal_distribution<float>(0.0, SIGMA));
-	for (int i = 0; i < awgnNoise.size(); ++i) {
-		awgnNoise[i] = std::complex<float>(generator(), generator());
-	}
+	fillNoiseArray();
 
 	preFiltArray.resize(OUTPUT_SAMPLES_BLOCK_SIZE, complex<float> (0.0, 0.0));
 
@@ -302,7 +294,13 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 	float linearGain = powf(10.0, gain/10.0);
 	retVec *= linearGain;
 
-	retVec += awgnNoise;
+	if (shouldAddNoise) {
+		{
+			boost::mutex::scoped_lock lock(noiseArrayMutex);
+			retVec += awgnNoise;
+			WARN("First value in awgnNoise = " << awgnNoise[0]);
+		}
+	}
 
 	TRACE("Delivering data to user class.");
 	userDataQueue->deliverData(retVec);
@@ -494,6 +492,46 @@ void FmRdsSimulatorImpl::setGainRange(float minGain, float maxGain) {
 	TRACE("Entered Method");
 	this->minGain= minGain;
 	this->maxGain = maxGain;
+	TRACE("Leaving Method");
+}
+
+void FmRdsSimulatorImpl::addNoise(bool shouldAddNoise) {
+	TRACE("Entered Method");
+	this->shouldAddNoise = shouldAddNoise;
+	TRACE("Leaving Method");
+}
+
+void FmRdsSimulatorImpl::setNoiseSigma(float noiseSigma) {
+	TRACE("Entered Method");
+	if (noiseSigma < 0) {
+		WARN("Negative standard deviation does not make sense.  Using absolute value.")
+	}
+
+	this->noiseSigma = fabs(noiseSigma);
+	fillNoiseArray();
+	TRACE("Leaving Method");
+}
+
+float FmRdsSimulatorImpl::getNoiseSigma() {
+	TRACE("Entered Method");
+	TRACE("Leaving Method");
+	return noiseSigma;
+}
+
+void FmRdsSimulatorImpl::fillNoiseArray() {
+	TRACE("Entered Method");
+	boost::variate_generator<boost::mt19937, boost::normal_distribution<float> > generator(boost::mt19937(time(0)), boost::normal_distribution<float>(0.0, noiseSigma));
+
+	{
+		TRACE("Filling awgnNoise array");
+
+		ERROR("Filling awgnNoise array");
+
+		boost::mutex::scoped_lock lock(noiseArrayMutex);
+		for (int i = 0; i < awgnNoise.size(); ++i) {
+			awgnNoise[i] = std::complex<float>(generator(), generator());
+		}
+	}
 	TRACE("Leaving Method");
 }
 

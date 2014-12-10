@@ -27,32 +27,10 @@ int main(void) {
 
 	RfSimulator * digSim = RfSimulatorFactory::createFmRdsSimulator();
 
-	digSim->init(p, &callback, TRACE);
+	digSim->init(p, &callback, WARN);
 
 	digSim->start();
-
 	sleep(1);
-	digSim->setSampleRate(228050*1);
-	sleep(1);
-	digSim->setSampleRate(228000*2);
-	sleep(1);
-	digSim->setSampleRate(228000*3);
-	sleep(1);
-	digSim->setSampleRate(228000*4);
-	sleep(1);
-	digSim->setSampleRate(228000*5);
-	sleep(1);
-	digSim->setSampleRate(228000*6);
-
-	std::cout << "Stopping the simulator" << std::endl;
-	digSim->stop();
-
-	sleep(1);
-
-	std::cout << "Restarting the simulator" << std::endl;
-	digSim->start();
-	sleep(5);
-
 	delete(digSim);
 
 	sleep(1);

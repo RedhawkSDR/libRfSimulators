@@ -43,6 +43,10 @@ public:
 	virtual void setSampleRate(unsigned int sampleRate) throw(InvalidValue) = 0;
 	virtual unsigned int getSampleRate() = 0;
 
+	virtual void addNoise(bool addNoise) = 0;
+	virtual void setNoiseSigma(float sigma) = 0;
+	virtual float getNoiseSigma() = 0;
+
 	virtual void start() = 0;
 	virtual void stop() = 0;
 
