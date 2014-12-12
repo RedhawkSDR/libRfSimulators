@@ -11,23 +11,31 @@
 using namespace RfSimulators;
 
 UserDataQueue::UserDataQueue(unsigned short maxQueueDepth, CallbackInterface *userClass) {
+	TRACE("Entering Method");
 	this->maxQueueDepth = maxQueueDepth;
 	this->userClass = userClass;
 	shuttingDown = false;
 	waitForDataThread = NULL;
+	TRACE("Leaving Method");
 }
 
 UserDataQueue::~UserDataQueue() {
+	TRACE("Entering Method");
 	shutDown();
+	TRACE("Leaving Method");
 }
 
 void UserDataQueue::waitForData()
 {
+	TRACE("Entering Method");
+	INFO("Launching thread Wait for Data Thread");
 	waitForDataThread = new boost::thread(boost::bind(&UserDataQueue::_waitForData, this));
+	TRACE("Leaving Method");
 }
 
 // Taken from: http://www.boost.org/doc/libs/1_51_0/doc/html/thread/synchronization.html#thread.synchronization.condvar_ref
 void UserDataQueue::_waitForData() {
+	TRACE("Entering Method");
 	while(not shuttingDown) {
 
 		std::valarray< std::complex<float> > dataCopy;
@@ -38,26 +46,37 @@ void UserDataQueue::_waitForData() {
 			while((internalDataBuffer.size() == 0)  && (not shuttingDown))
 			{
 				// This unlocks the mutex until the wait is over
+				TRACE("Waiting until Data is available");
 				cond.wait(lock);
+				TRACE("Woken up, checking for data.");
 
 				// At this point the mutex is locked again.
 			}
 
+			TRACE("Data is available!");
+
 			if (shuttingDown) {
+				TRACE("Shutting down, ignoring data");
 				break;
 			}
 
+			TRACE("Copying data for user.  Size: " << internalDataBuffer.front().size());
 			dataCopy.resize(internalDataBuffer.front().size());
 			dataCopy = internalDataBuffer.front();
 
+			TRACE("Removing data from queue");
 			internalDataBuffer.pop();
 		}
 
+		TRACE("Passing " << dataCopy.size() << " data points to user");
 		userClass->dataDelivery(dataCopy);
 	}
+
+	TRACE("Leaving Method");
 }
 
 void UserDataQueue::shutDown() {
+	TRACE("Entering Method");
 	shuttingDown = true;
 	cond.notify_all();
 	if (waitForDataThread) {
@@ -68,14 +87,18 @@ void UserDataQueue::shutDown() {
 		delete(waitForDataThread);
 		waitForDataThread = NULL;
 	}
+	TRACE("Leaving Method");
 }
 
 void UserDataQueue::deliverData(std::valarray< std::complex<float> > &dataArray)
 {
+	TRACE("Entering Method");
+
     {
         boost::lock_guard<boost::mutex> lock(mut);
 
         if (shuttingDown) {
+        	INFO("Shutting down, refusing to pass data to user.");
         	return;
         }
 
@@ -93,13 +116,16 @@ void UserDataQueue::deliverData(std::valarray< std::complex<float> > &dataArray)
 
 			return;
 		}
-
+		TRACE("Adding array of size: " << dataArray.size() << " to UserDataQueue buffer");
 		internalDataBuffer.push(dataArray);
     }
 
     cond.notify_one();
+    TRACE("Leaving Method");
 }
 
 void UserDataQueue::setMaxQueueSize(unsigned short size) {
+	TRACE("Entering Method");
 	maxQueueDepth = size;
+	TRACE("Leaving Method");
 }

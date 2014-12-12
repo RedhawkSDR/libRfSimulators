@@ -27,7 +27,7 @@ int main(void) {
 
 	RfSimulator * digSim = RfSimulatorFactory::createFmRdsSimulator();
 
-	digSim->init(p, &callback, WARN);
+	digSim->init(p, &callback, TRACE);
 
 	digSim->start();
 	sleep(1);

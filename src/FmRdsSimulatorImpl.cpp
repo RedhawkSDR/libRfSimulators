@@ -170,24 +170,27 @@ void FmRdsSimulatorImpl::stop() {
 	// Stop the Boost Asynchronous Service
 	io.stop();
 
-	TRACE("Joining all io service threads");
-	// It was running in its own thread so make sure it completes
-	io_service_thread->join();
 
-	TRACE("Deleting the io service thread object");
-	// Then destroy the memory for that thread
 	if (io_service_thread) {
+		TRACE("Joining all io service threads");
+
+		// Then destroy the memory for that thread
+		// It was running in its own thread so make sure it completes
+		io_service_thread->join();
+
+		TRACE("Deleting the io service thread object");
 		delete(io_service_thread);
 		io_service_thread = NULL;
 	}
 
-	TRACE("Shutting down the user data queue");
-	// Now shutdown the data queue
-	userDataQueue->shutDown();
 
-	TRACE("Deleting the user data queue object");
-	// And delete it.
 	if (userDataQueue) {
+		TRACE("Shutting down the user data queue");
+		// Now shutdown the data queue
+		userDataQueue->shutDown();
+
+
+		TRACE("Deleting the user data queue object");
 		delete(userDataQueue);
 		userDataQueue = NULL;
 	}
@@ -267,7 +270,8 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 	// Collect the data and add it to the return vector
 	TRACE("Collecting data");
 	for (i = 0; i < transmitters.size(); ++i) {
-		std::valarray< std::complex<float> > txData = transmitters[i]->getData();
+		std::valarray< std::complex<float> > &txData = transmitters[i]->getData();
+		TRACE("Collected: " << txData.size() << " samples from: " << transmitters[i]->getFilePath());
 
 		if (txData.size() != preFiltArray.size()) {
 			WARN("Vector size miss-match on transmitter: " << transmitters[i]->getFilePath().string())
@@ -302,7 +306,7 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 		}
 	}
 
-	TRACE("Delivering data to user class.");
+	TRACE("Delivering " << retVec.size() << " data points to data queue.");
 	userDataQueue->deliverData(retVec);
 
 	TRACE("Leaving Method");

@@ -53,8 +53,12 @@ void Transmitter::setTunedFrequency(float tunedFrequency) {
 
 	float normFc = (this->tunedFrequency - centerFrequency) / MAX_OUTPUT_SAMPLE_RATE;
 
-	TRACE("Therefore this is a normFc of : " << normFc);
-	tuner.retune(normFc);
+
+	{
+		boost::mutex::scoped_lock lock(tunerMutex);
+		TRACE("Therefore this is a normFc of : " << normFc);
+		tuner.retune(normFc);
+	}
 
 	TRACE("Exited Method");
 }
@@ -180,8 +184,11 @@ int Transmitter::doWork() {
 		filter.run();
 
 
-		TRACE("Tuning to the relative frequency");
-		tuner.run();
+		{
+			boost::mutex::scoped_lock lock(tunerMutex);
+			TRACE("Tuning to the relative frequency");
+			tuner.run();
+		}
 
 		TRACE("Exited Method");
 		return 0;

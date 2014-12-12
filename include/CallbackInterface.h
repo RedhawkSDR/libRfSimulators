@@ -19,7 +19,7 @@ namespace RfSimulators {
 class CallbackInterface
 {
 public:
-    virtual void dataDelivery(std::valarray< std::complex<float> > samples) = 0;
+    virtual void dataDelivery(std::valarray< std::complex<float> > &samples) = 0;
 };
 
 };

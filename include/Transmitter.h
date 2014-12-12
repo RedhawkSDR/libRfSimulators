@@ -69,6 +69,7 @@ private:
 	FrequencyModulator fm;
 	FIRFilter filter;
 	Tuner tuner;
+	boost::mutex tunerMutex;
 
 };
 
