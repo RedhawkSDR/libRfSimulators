@@ -282,6 +282,13 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 		}
 	}
 
+	if (shouldAddNoise) {
+		{
+			boost::mutex::scoped_lock lock(noiseArrayMutex);
+			preFiltArray += awgnNoise;
+		}
+	}
+
 	// So if the max rate was 1,000 and we want a sample rate of 250
 	// the puncture rate would be 4, we would keep 1 out of every 4 samples.
 	unsigned int punctureRate = MAX_OUTPUT_SAMPLE_RATE/sampleRate;
@@ -298,12 +305,6 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 	float linearGain = powf(10.0, gain/10.0);
 	retVec *= linearGain;
 
-	if (shouldAddNoise) {
-		{
-			boost::mutex::scoped_lock lock(noiseArrayMutex);
-			retVec += awgnNoise;
-		}
-	}
 
 	TRACE("Delivering " << retVec.size() << " data points to data queue.");
 	userDataQueue->deliverData(retVec);
@@ -454,7 +455,7 @@ void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidVal
 	unsigned int closestSampleRate = round(MAX_OUTPUT_SAMPLE_RATE / closestInteger);
 
 
-		INFO("Setting sample rate to closest available: " << closestSampleRate);
+	INFO("Setting sample rate to closest available: " << closestSampleRate);
 
 
 	{
