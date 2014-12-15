@@ -17,6 +17,8 @@ Transmitter::Transmitter() :
 		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
 		{
 
+	TRACE("Entered Method");
+
 	centerFrequency = -1;
 	rdsText = "REDHAWK Radio";
 	numSamples = -1;
@@ -28,6 +30,7 @@ Transmitter::Transmitter() :
 	fm_mpx_status_struct.audio_len = 0;
 	fm_mpx_status_struct.fir_index = 0;
 
+	TRACE("Clearing out the fm_mpx structs");
 	unsigned int i;
 	for (i = 0; i < FIR_SIZE; i++) {
 		fm_mpx_status_struct.fir_buffer_mono[i] = 0;
@@ -39,19 +42,25 @@ Transmitter::Transmitter() :
 
 
 	/**
-	 * This is a bit of a hack currently.
-	 * We create a LPF with 30 taps.  Then create ten 3 tap filters from the designed filter taps for our polyphase filter.
+	 * This is a bit of a messy approach currently and should be rolled into the Redhawk DSP library.
+	 * Initially, we inserted zeros to upsample then filtered the upsampled data.  This was a big strain on CPU.
+	 * The approach outlined in section 3.4 of http://www.dspguru.com/dsp/faqs/multirate/interpolation provides
+	 * a polyphase filter approach.  This allows us to create an LPF with 30 taps, then based on that, create ten 3 tap filters.
+	 * The data is then filtered by each of the 3 tap filters and combined to form the upsampled version.
+	 *
+	 * This is more efficient since we are filtering the data at the original sample rate 10 times with our 3 tap filters
+	 * instead of the upsampled rate (10x) once with our 30 tap filter.
 	 */
-
-
+	TRACE("Generating the temporary filter for the sole purpose of stealing the tap values");
 	FIRFilter tmpFilter(basebandCmplx, basebandCmplxUpSampled, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(FILTER_CUTOFF));
 
 	// This will have 30 filter taps.
 	RealArray filterTaps = tmpFilter.getFilterCoefficients();
 
 	polyphaseFilterTaps.resize(10);
-	polyphaseFilters.resize(10);
+	polyphaseFilters.resize(10, NULL);
 
+	TRACE("Parsing tmpFilter taps and creating the 10 polyPhase filters");
 	for (int i = 0; i < 10; ++i) {
 
 		std::vector<float> tmpTaps;
@@ -65,9 +74,13 @@ Transmitter::Transmitter() :
 		polyphaseFilters[i] = new FIRFilter(basebandCmplx, basebandCmplx_polyPhaseout, &polyphaseFilterTaps[i][0], tmpTaps.size());
 
 	}
+	TRACE("Exiting Method");
 }
 
 Transmitter::~Transmitter() {
+	TRACE("Entered Method");
+
+	TRACE("Deleting polyphase filters");
 	// Wait for the thread to join up
 	for (int i = 0; i < polyphaseFilters.size(); ++i) {
 		if (polyphaseFilters[i]) {
@@ -75,7 +88,9 @@ Transmitter::~Transmitter() {
 		}
 	}
 
+	TRACE("Joining up the Transmitter thread");
 	m_Thread.join();
+	TRACE("Exiting Method");
 }
 
 
@@ -180,8 +195,8 @@ int Transmitter::init(float centerFrequency, int numSamples) {
  * Here is what we need to do each pass
  * 1. Use the PiRds library to take in the file and prep for FM modulation (Add RDS & pilot tone & separate the stereo etc)
  * 2. FM Modulate using the GNURadio implementation of FM modulation.
- * 3. Upsample to a higher sample rate so we can have higher bandwidth.
- * 4. Frequency shift up to he appropriate location.
+ * 3. Upsample to a higher sample rate so we can have higher bandwidth using the method from http://www.dspguru.com/dsp/faqs/multirate/interpolation
+ * 4. Frequency shift up to he appropriate location based on our current tuned frequency and the location of our station.
  */
 int Transmitter::doWork() {
 	TRACE("Entered Method");
@@ -236,8 +251,6 @@ std::valarray< std::complex<float> >& Transmitter::getData() {
 }
 
 
-// From: http://stackoverflow.com/questions/1549930/c-equivalent-of-java-tostring
-// Yes, that's right, I had to google that, sad face java developer. :-(
 std::ostream& operator<<(std::ostream &strm, const Transmitter &tx) {
   return strm << std::endl
 		  << "File Name: " << tx.filePath << std::endl
