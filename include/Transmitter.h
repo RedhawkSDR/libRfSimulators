@@ -59,15 +59,17 @@ private:
 	int doWork();
 	std::valarray<float> mpx_buffer;
 	std::valarray< std::complex<float> > basebandCmplx;
+	std::valarray< std::complex<float> > basebandCmplx_polyPhaseout;
 	std::valarray< std::complex<float> > basebandCmplxUpSampled;
-	std::valarray< std::complex<float> > basebandCmplxUpSampled_tmp;
 	std::valarray< std::complex<float> > basebandCmplxUpSampledTuned;
 
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
-	FIRFilter filter;
+	// The FIRFilter and the
+	std::vector<FIRFilter *> polyphaseFilters;
+	std::vector< std::vector<float> > polyphaseFilterTaps;
 	Tuner tuner;
 	boost::mutex tunerMutex;
 

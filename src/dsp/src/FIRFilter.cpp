@@ -98,7 +98,7 @@ FIRFilter::FIRFilter(const ComplexArray &input, ComplexArray &output,
     // Obtain an appropriate low-pass filter.
     //
 #if 1
-    _filtCoeff.resize(25);          // 25 taps
+    _filtCoeff.resize(30);          // 30 taps
     wdfir(type, atten, Fl, Fh);
 #else
     Real normalizedCutoffFreq;

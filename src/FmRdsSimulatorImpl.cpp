@@ -302,7 +302,6 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 		{
 			boost::mutex::scoped_lock lock(noiseArrayMutex);
 			retVec += awgnNoise;
-			WARN("First value in awgnNoise = " << awgnNoise[0]);
 		}
 	}
 

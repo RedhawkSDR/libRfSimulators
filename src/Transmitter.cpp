@@ -14,8 +14,7 @@
 
 Transmitter::Transmitter() :
 		fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE),
-		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0),
-		filter(basebandCmplxUpSampled_tmp, basebandCmplxUpSampled, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(FILTER_CUTOFF))
+		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
 		{
 
 	centerFrequency = -1;
@@ -37,10 +36,45 @@ Transmitter::Transmitter() :
 
 	filePath = "";
 	tunedFrequency = 0.0;
+
+
+	/**
+	 * This is a bit of a hack currently.
+	 * We create a LPF with 30 taps.  Then create ten 3 tap filters from the designed filter taps for our polyphase filter.
+	 */
+
+
+	FIRFilter tmpFilter(basebandCmplx, basebandCmplxUpSampled, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(FILTER_CUTOFF));
+
+	// This will have 30 filter taps.
+	RealArray filterTaps = tmpFilter.getFilterCoefficients();
+
+	polyphaseFilterTaps.resize(10);
+	polyphaseFilters.resize(10);
+
+	for (int i = 0; i < 10; ++i) {
+
+		std::vector<float> tmpTaps;
+		tmpTaps.resize(3);
+		for (int ii = 0; ii < 3; ++ii) {
+			tmpTaps[ii] = filterTaps[i+ii*10];
+		}
+
+		polyphaseFilterTaps[i].resize(tmpTaps.size());
+		polyphaseFilterTaps[i] = tmpTaps;
+		polyphaseFilters[i] = new FIRFilter(basebandCmplx, basebandCmplx_polyPhaseout, &polyphaseFilterTaps[i][0], tmpTaps.size());
+
+	}
 }
 
 Transmitter::~Transmitter() {
 	// Wait for the thread to join up
+	for (int i = 0; i < polyphaseFilters.size(); ++i) {
+		if (polyphaseFilters[i]) {
+			delete (polyphaseFilters[i]);
+		}
+	}
+
 	m_Thread.join();
 }
 
@@ -130,11 +164,10 @@ int Transmitter::init(float centerFrequency, int numSamples) {
     mpx_buffer.resize(numSamples, 0);
 
     basebandCmplx.resize(numSamples, std::complex<float>(0.0,0.0));
+    basebandCmplx_polyPhaseout.resize(numSamples, std::complex<float>(0.0,0.0));
 
-    basebandCmplxUpSampled_tmp.resize(numSamples*10, std::complex<float>(0.0,0.0));
     basebandCmplxUpSampled.resize(numSamples*10, std::complex<float>(0.0,0.0));
     basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
-
     initilized = true;
 	TRACE("Exited Method");
     return 0;
@@ -174,14 +207,13 @@ int Transmitter::doWork() {
 		TRACE("FM Modulating the real data");
 		fm.modulate(mpx_buffer, basebandCmplx);
 
-		TRACE("Up Sampling the modulated data");
-		// Insert nine 0's between each sample to upsample
-		for (int i = 0; i < basebandCmplx.size(); ++i) {
-			basebandCmplxUpSampled_tmp[10*i] = basebandCmplx[i];
+		TRACE("Polyphase filtering for upsampling");
+		for (int i = 0; i < 10; ++i) {
+			polyphaseFilters[i]->run();
+			for (int ii = 0; ii < basebandCmplx_polyPhaseout.size(); ++ii) {
+				basebandCmplxUpSampled[i + 10*ii] = basebandCmplx_polyPhaseout[ii];
+			}
 		}
-
-		TRACE("Filtering the upsampled data");
-		filter.run();
 
 
 		{
