@@ -1,7 +1,7 @@
-Name:           libFmRdsSimulator
+Name:           libRfSimulators
 Version:        1.0.0
 Release:        0%{?dist}
-Summary:        RF Simulator Library - FmRdsSimulator
+Summary:        RF Simulator Library - FM RDS Simulator.
 
 Group:          REDHAWK
 License:        GPLv3
