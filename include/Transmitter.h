@@ -36,7 +36,9 @@ public:
 	void setTunedFrequency(float centerFreqeuncy);
 	void setFilePath(path filePath);
 	path getFilePath();
-	void setRdsText(std::string rdsText);
+	void setRdsFullText(std::string fullText);
+	void setRdsShortText(std::string shortText);
+	void setRdsCallSign(std::string callSign);
 	virtual ~Transmitter();
 	std::valarray< std::complex<float> >& getData();
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
@@ -53,23 +55,31 @@ private:
 	float tunedFrequency;
 
 	path filePath;
-	std::string rdsText;
+
+	std::string rdsFullText;
+	std::string rdsShortText;
+	std::string rdsCallSign;
+
 	thread m_Thread;
 	int numSamples;
 	int doWork();
+	unsigned int callSignToInt(std::string callSign);
+
 	std::valarray<float> mpx_buffer;
 	std::valarray< std::complex<float> > basebandCmplx;
 	std::valarray< std::complex<float> > basebandCmplx_polyPhaseout;
 	std::valarray< std::complex<float> > basebandCmplxUpSampled;
 	std::valarray< std::complex<float> > basebandCmplxUpSampledTuned;
+	std::vector<FIRFilter *> polyphaseFilters;
+	std::vector< std::vector<float> > polyphaseFilterTaps;
+
 
 	rds_struct rds_status_struct;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
-	// The FIRFilter and the
-	std::vector<FIRFilter *> polyphaseFilters;
-	std::vector< std::vector<float> > polyphaseFilterTaps;
+
+
 	Tuner tuner;
 	boost::mutex tunerMutex;
 

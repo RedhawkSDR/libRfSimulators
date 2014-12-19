@@ -8,6 +8,7 @@
 #include "DigitizerSimLogger.h"
 #include <math.h>
 #include "SimDefaults.h"
+#include <algorithm>
 
 // From: http://gnuradio.org/redmine/projects/gnuradio/wiki/SignalProcessing
 // sensitivity = (2 * pi * max_deviation) / samp_rate
@@ -20,7 +21,11 @@ Transmitter::Transmitter() :
 	TRACE("Entered Method");
 
 	centerFrequency = -1;
-	rdsText = "REDHAWK Radio";
+
+	rdsFullText = "REDHAWK Radio, Rock the Hawk!";
+	rdsShortText = "REDHAWK!";
+	rdsCallSign = "WSDR";
+
 	numSamples = -1;
 	initilized = false;
 
@@ -125,10 +130,29 @@ path Transmitter::getFilePath() {
 	TRACE("Exited Method");
 }
 
-void Transmitter::setRdsText(std::string rdsText) {
+void Transmitter::setRdsFullText(std::string rdsFullText) {
 	TRACE("Entered Method");
-	TRACE("Setting RDS Text to: " << rdsText);
-	this->rdsText = rdsText;
+	TRACE("Setting RDS Full Text to: " << rdsFullText);
+	this->rdsFullText = rdsFullText;
+	TRACE("Exited Method");
+}
+
+void Transmitter::setRdsShortText(std::string rdsShortText) {
+	TRACE("Entered Method");
+	TRACE("Setting RDS Short Text to: " << rdsShortText);
+	this->rdsShortText = rdsShortText;
+	TRACE("Exited Method");
+}
+
+void Transmitter::setRdsCallSign(std::string rdsCallSign) {
+	TRACE("Entered Method");
+
+	TRACE("Converting call-sign to upper-case");
+	std::transform(rdsCallSign.begin(), rdsCallSign.end(),rdsCallSign.begin(), ::toupper);
+
+	TRACE("Setting RDS Call Sign Text to: " << rdsCallSign);
+	this->rdsCallSign = rdsCallSign;
+
 	TRACE("Exited Method");
 }
 
@@ -160,9 +184,25 @@ int Transmitter::init(float centerFrequency, int numSamples) {
 
 
 	TRACE("Initializing RDS struct");
-	rds_status_struct.pi = 0x1234;
-	set_rds_ps(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
-	set_rds_rt(const_cast<char *> (rdsText.c_str()), &rds_status_struct);
+
+	if (rdsCallSign.length() > 4) {
+		WARN("Call Sign must be 4 characters.  Truncating " << rdsCallSign);
+		rdsCallSign.resize(4);
+	} else if (rdsCallSign.length() < 4) {
+		WARN("Call Sign must be 4 characters.  Prepending with Ws to: " << rdsCallSign);
+		while (rdsCallSign.length() < 4) {
+			rdsCallSign.insert(0, "W");
+		}
+	}
+
+	if (rdsShortText.length() > 8) {
+		WARN("RDS Short Text cannot be longer than 8 characters.  Truncating");
+		rdsShortText.resize(8);
+	}
+
+	rds_status_struct.pi = callSignToInt(rdsCallSign);
+	set_rds_ps(const_cast<char *> (rdsShortText.c_str()), &rds_status_struct);
+	set_rds_rt(const_cast<char *> (rdsFullText.c_str()), &rds_status_struct);
 
 	if (filePath == "") {
 		ERROR("File Path to wav file has not been set!");
@@ -250,10 +290,37 @@ std::valarray< std::complex<float> >& Transmitter::getData() {
 	return basebandCmplxUpSampledTuned;
 }
 
+// Algorithm from: www.w9wi.com/articles/rdsreverse.htm
+unsigned int Transmitter::callSignToInt(std::string callSign) {
+	TRACE("Entered Method");
+	unsigned int retVal = 0x1234;
+
+	if (callSign.length() != 4) {
+		ERROR("Expected callsign to be 4 characters.");
+	} else {
+		unsigned int letter1 = callSign[0] - 65;
+		unsigned int letter2 = callSign[1] - 65;
+		unsigned int letter3 = callSign[2] - 65;
+		unsigned int letter4 = callSign[3] - 65;
+
+		retVal = (26*26*letter2) + (26*letter3) + letter4;
+
+		if (letter1 == 10) {
+			retVal = retVal + 4096;
+		} else {
+			retVal += 21672;
+		}
+	}
+
+	TRACE("Exited Method");
+	return retVal;
+}
 
 std::ostream& operator<<(std::ostream &strm, const Transmitter &tx) {
   return strm << std::endl
 		  << "File Name: " << tx.filePath << std::endl
 		  << "Center Frequency: " << tx.centerFrequency << std::endl
-		  << "RDS String: " << tx.rdsText << std::endl;
+		  << "RDS Call Sign: " << tx.rdsCallSign << std::endl
+		  << "RDS Short text: " << tx.rdsShortText << std::endl
+		  << "RDS Full text: " << tx.rdsFullText << std::endl;
 }

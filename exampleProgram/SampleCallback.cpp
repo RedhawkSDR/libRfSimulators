@@ -21,8 +21,6 @@ void SampleCallback::dataDelivery(std::valarray< std::complex<float> > &samples)
 	std::cout << ms;
 	std::cout << ": CallbackInterface Received: " << samples.size() << " data points" << std::endl;
 
-//	sleep(5);
-
 	testFile.write((char*)&samples[0], samples.size() * sizeof(samples[0]));
 }
 

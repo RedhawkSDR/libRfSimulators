@@ -30,7 +30,11 @@ int main(void) {
 	digSim->init(p, &callback, TRACE);
 
 	digSim->start();
-	sleep(1);
+
+	sleep(120);
+
+
+
 	delete(digSim);
 
 	sleep(1);

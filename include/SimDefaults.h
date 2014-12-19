@@ -21,8 +21,9 @@ using namespace std;
 
 #define FILTER_ATTENUATION 70 // dB
 
-static string DEFAULT_RDS_TEXT = "REDHAWK Radio, taking you to the cloud.";
-
+static string DEFAULT_RDS_CALL_SIGN = "WSDR";
+static string DEFAULT_RDS_SHORT_TEXT = "REDHAWK!";
+static string DEFAULT_RDS_FULL_TEXT = "REDHAWK Radio, Rock the Hawk! (www.redhawksdr.org)";
 
 
 #endif /* LIBFMRDSSIMULATOR_INCLUDE_SIMDEFAULTS_H_ */

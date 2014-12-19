@@ -316,14 +316,27 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 	TRACE("Entered Method");
 
 	TiXmlDocument doc(filePath.string());
+
+	TRACE("Loading XML File");
 	if(doc.LoadFile()) {
+		TRACE("Creating new transmitter object");
 		Transmitter * tx = new Transmitter();
 
 	    TiXmlHandle hDoc(&doc);
 	    TiXmlElement *pRoot, *pParm;
+	    pRoot = NULL;
+	    pParm = NULL;
+
+	    TRACE("Getting the TxProps root element of the XML");
 	    pRoot = doc.FirstChildElement("TxProps");
 
+	    if (not pRoot) {
+			ERROR("Malformed xml file: " << filePath.string());
+			TRACE("Leaving Method");
+			return -1;
+	    }
 
+	    TRACE("Getting the FileName element");
 	    pParm = pRoot->FirstChildElement("FileName");
 	    if (not pParm) {
 	    	ERROR("FileName element is required within file: " << filePath.string());
@@ -335,6 +348,11 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 
 	    path filepath = path(filePath.parent_path().string() + "/" + pParm->GetText());
 
+	    TRACE("Deleting the reference to the filepath XML object");
+	    // Done with file param;
+	    pParm = NULL;
+
+	    TRACE("Checking file exists");
 	    if (not exists(filepath)) {
 	    	ERROR("Could not locate file: " << filepath.string());
 			delete(tx);
@@ -342,8 +360,10 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 			return -1;
 	    }
 
+	    TRACE("Setting filepath into transmitter");
 		tx->setFilePath(filepath);
 
+		TRACE("Getting Center Frequency element.");
 	    pParm = pRoot->FirstChildElement("CenterFrequency");
 
 	    if (not pParm) {
@@ -356,14 +376,57 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 
 	    float centerFreq = atof(pParm->GetText());
 
-		pParm = pRoot->FirstChildElement("RDS");
+		TiXmlElement *rdsRoot;
+		rdsRoot = NULL;
 
-		if (pParm)
-			tx->setRdsText(pParm->GetText());
-		else
-			tx->setRdsText(DEFAULT_RDS_TEXT);
+		TRACE("Finding RDS Root element.");
+		rdsRoot = pRoot->FirstChildElement("RDS");
 
+		if (rdsRoot) {
+
+			TRACE("Finding CallSign XML element");
+			pParm = rdsRoot->FirstChildElement("CallSign");
+			if (pParm) {
+				TRACE("Setting CallSign on Transmitter object");
+				tx->setRdsCallSign(pParm->GetText());
+				pParm = NULL;
+			} else {
+				TRACE("Setting default CallSign element");
+				tx->setRdsCallSign(DEFAULT_RDS_CALL_SIGN);
+			}
+
+			TRACE("Finding ShortText XML element");
+			pParm = rdsRoot->FirstChildElement("ShortText");
+			if (pParm) {
+				TRACE("Setting ShortText on Transmitter object");
+				tx->setRdsShortText(pParm->GetText());
+				pParm = NULL;
+			} else {
+				TRACE("Setting default Short Text element");
+				tx->setRdsShortText(DEFAULT_RDS_SHORT_TEXT);
+			}
+
+			TRACE("Finding Full Text XML element");
+			pParm = rdsRoot->FirstChildElement("FullText");
+			if (pParm) {
+				TRACE("Setting Full Text on Transmitter object");
+				tx->setRdsFullText(pParm->GetText());
+				pParm = NULL;
+			} else {
+				TRACE("Setting default Full Text element");
+				tx->setRdsFullText(DEFAULT_RDS_FULL_TEXT);
+			}
+
+		} else {
+			TRACE("RDS XML root not set, using defaults.");
+			tx->setRdsCallSign(DEFAULT_RDS_CALL_SIGN);
+			tx->setRdsShortText(DEFAULT_RDS_SHORT_TEXT);
+			tx->setRdsFullText(DEFAULT_RDS_FULL_TEXT);
+		}
+
+		TRACE("Initializing the Transmitter object");
 		if (tx->init(centerFreq, FILE_INPUT_BLOCK_SIZE) != 0) {
+			TRACE("Something went wrong.  Deleting the transmitter object");
 			delete(tx);
 			tx = NULL;
 			ERROR("Initialization of transmitter failed!")
@@ -371,8 +434,10 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 			return -1;
 		}
 
+		TRACE("Setting the tuned frequency of the Transmitter object");
 		tx->setTunedFrequency(tunedFreq);
 
+		TRACE("Pushing the transmitter object onto the vector of transmitters");
 		transmitters.push_back(tx);
 		TRACE("Stored following: " << *tx);
 
@@ -388,14 +453,16 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 
 void FmRdsSimulatorImpl::setQueueSize(unsigned short queueSize) {
 	TRACE("Entered Method");
-	if (userDataQueue)
+	if (userDataQueue) {
 		userDataQueue->setMaxQueueSize(queueSize);
+	}
 
 	maxQueueSize = queueSize;
 
 	if(queueSize == 0) {
 		WARN("Queue Size has been set to zero.  You will not receive any data");
 	}
+
 	TRACE("Leaving Method");
 }
 
@@ -413,6 +480,7 @@ void FmRdsSimulatorImpl::setCenterFrequency(float freq) throw(OutOfRangeExceptio
 	for (int i = 0; i < transmitters.size(); ++i) {
 		transmitters[i]->setTunedFrequency(tunedFreq);
 	}
+
 	TRACE("Leaving Method");
 }
 
@@ -528,9 +596,6 @@ void FmRdsSimulatorImpl::fillNoiseArray() {
 
 	{
 		TRACE("Filling awgnNoise array");
-
-		ERROR("Filling awgnNoise array");
-
 		boost::mutex::scoped_lock lock(noiseArrayMutex);
 		for (int i = 0; i < awgnNoise.size(); ++i) {
 			awgnNoise[i] = std::complex<float>(generator(), generator());
