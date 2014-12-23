@@ -52,7 +52,7 @@ Example files are provided within this git repository but are checked in as a si
 
     git show ExampleFiles > ExampleFiles.tar.gz
 
-The example files contain nine example wav files.  Eight of which were pulled from (FreeSound)[https://www.freesound.org/] and one is a reading from the REDHAWK SDR Manual.  All are licensed under the Creative Commons License.  There are twenty XML files, each describing an individual FM station and lastly a simple bash script to quickly generate randomly distributed stations given a directory of wav files.  See the included README and LICENSE file for additional information.
+The example files contain nine example wav files.  Eight of which were pulled from [FreeSound](https://www.freesound.org/) and one is a reading from the REDHAWK SDR Manual.  All are licensed under the Creative Commons License.  There are twenty XML files, each describing an individual FM station and lastly a simple bash script to quickly generate randomly distributed stations given a directory of wav files.  See the included README and LICENSE file for additional information.
 
 ## Getting started & API Notes
 
