@@ -58,22 +58,23 @@ int fm_mpx_open(char *filename, size_t len, struct fm_mpx_struct* fm_mpx_status)
             if(! (fm_mpx_status->inf = sf_open(filename, SFM_READ, &sfinfo))) {
                 fprintf(stderr, "Error: could not open input file %s.\n", filename) ;
                 return -1;
-            } else {
-                printf("Using audio file: %s\n", filename);
             }
+//            else {
+//                printf("Using audio file: %s\n", filename);
+//            }
         }
             
         int in_samplerate = sfinfo.samplerate;
         fm_mpx_status->downsample_factor = 228000. / in_samplerate;
     
-        printf("Input: %d Hz, upsampling factor: %.2f\n", in_samplerate, fm_mpx_status->downsample_factor);
+//        printf("Input: %d Hz, upsampling factor: %.2f\n", in_samplerate, fm_mpx_status->downsample_factor);
 
         fm_mpx_status->channels = sfinfo.channels;
-        if(fm_mpx_status->channels > 1) {
-            printf("%d channels, generating stereo multiplex.\n", fm_mpx_status->channels);
-        } else {
-            printf("1 channel, monophonic operation.\n");
-        }
+//        if(fm_mpx_status->channels > 1) {
+//            printf("%d channels, generating stereo multiplex.\n", fm_mpx_status->channels);
+//        } else {
+//            printf("1 channel, monophonic operation.\n");
+//        }
     
     
         // Create the low-pass FIR filter
@@ -94,7 +95,7 @@ int fm_mpx_open(char *filename, size_t len, struct fm_mpx_struct* fm_mpx_status)
                 * (.54 - .46 * cos(2*PI * (i+FIR_HALF_SIZE) / (2*FIR_HALF_SIZE)));
                                                               // Hamming window
         }
-        printf("Created low-pass FIR filter for audio channels, with cutoff at %.1f Hz\n", cutoff_freq);
+//        printf("Created low-pass FIR filter for audio channels, with cutoff at %.1f Hz\n", cutoff_freq);
     
         /*
         for(int i=0; i<FIR_HALF_SIZE; i++) {

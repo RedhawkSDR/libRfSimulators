@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
         // scale samples
         for(int i=0; i<LENGTH; i++) {
             mpx_buffer[i] /= 10.;
-            printf("%f, ", mpx_buffer[i]);
+//            printf("%f, ", mpx_buffer[i]);
         }
         exit(0);
 

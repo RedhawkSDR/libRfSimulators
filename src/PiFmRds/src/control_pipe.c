@@ -72,20 +72,20 @@ int poll_control_pipe() {
         if(res[0] == 'P' && res[1] == 'S') {
             arg[8] = 0;
             set_rds_ps(arg);
-            printf("PS set to: \"%s\"\n", arg);
+//            printf("PS set to: \"%s\"\n", arg);
             return CONTROL_PIPE_PS_SET;
         }
         if(res[0] == 'R' && res[1] == 'T') {
             arg[64] = 0;
             set_rds_rt(arg);
-            printf("RT set to: \"%s\"\n", arg);
+//            printf("RT set to: \"%s\"\n", arg);
             return CONTROL_PIPE_RT_SET;
         }
         if(res[0] == 'T' && res[1] == 'A') {
             int ta = ( strcmp(arg, "ON") == 0 );
             set_rds_ta(ta);
-            printf("Set TA to ");
-            if(ta) printf("ON\n"); else printf("OFF\n");
+//            printf("Set TA to ");
+//            if(ta) printf("ON\n"); else printf("OFF\n");
             return CONTROL_PIPE_TA_SET;
         }
     }
