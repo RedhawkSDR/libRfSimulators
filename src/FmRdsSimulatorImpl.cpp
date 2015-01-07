@@ -59,6 +59,25 @@ FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	float cutOff = (0.5*(sampleRate / MAX_OUTPUT_SAMPLE_RATE)); // normalized frequency
 	filter = new FIRFilter(preFiltArray, postFiltArray, FIRFilter::lowpass, Real(FILTER_ATTENUATION), Real(cutOff));
 
+	// 0.5 because of cast truncation.
+	unsigned int maxSampleRateInt = (unsigned int) (MAX_OUTPUT_SAMPLE_RATE + 0.5);
+	int iterator = 2;
+	unsigned int tmpSampleRate = maxSampleRateInt;
+	availableSampleRates.push_back(tmpSampleRate);
+
+	while (tmpSampleRate >= MIN_OUTPUT_SAMPLE_RATE) {
+		if (maxSampleRateInt % iterator == 0) {
+			tmpSampleRate = maxSampleRateInt / iterator;
+
+			if (tmpSampleRate >= MIN_OUTPUT_SAMPLE_RATE) {
+				availableSampleRates.push_back(tmpSampleRate);
+			}
+		}
+		++iterator;
+	}
+
+	std::sort (availableSampleRates.begin(), availableSampleRates.end());
+
 }
 
 FmRdsSimulatorImpl::~FmRdsSimulatorImpl() {
@@ -470,7 +489,7 @@ void FmRdsSimulatorImpl::setQueueSize(unsigned short queueSize) {
 void FmRdsSimulatorImpl::setCenterFrequency(float freq) throw(OutOfRangeException){
 	TRACE("Entered Method");
 
-	if (freq > maxFreq || freq < minFreq) {
+	if (freq + (1/2 * sampleRate) > maxFreq || freq - (1/2 * sampleRate) < minFreq) {
 		WARN("Frequency out of range");
 		throw OutOfRangeException();
 	}
@@ -513,18 +532,26 @@ void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidVal
 	if (sampleRate > MAX_OUTPUT_SAMPLE_RATE) {
 		WARN("User requested sample rate of " << sampleRate << " is higher than max: " << MAX_OUTPUT_SAMPLE_RATE);
 		INFO("Sample Rate request: " << sampleRate);
-		sampleRate = MAX_OUTPUT_SAMPLE_RATE;
+		throw InvalidValue();
+		return;
 	} else if (sampleRate < MIN_OUTPUT_SAMPLE_RATE) {
 		WARN("User requested sample rate of " << sampleRate << " is lower than min: " << MIN_OUTPUT_SAMPLE_RATE);
 		INFO("Sample Rate request: " << sampleRate);
+		throw InvalidValue();
+		return;
 	}
 
-	unsigned int closestInteger = round(MAX_OUTPUT_SAMPLE_RATE / (float)sampleRate);
-	unsigned int closestSampleRate = round(MAX_OUTPUT_SAMPLE_RATE / closestInteger);
+	std::vector<unsigned int>::iterator closestIterator;
+	closestIterator = std::lower_bound(availableSampleRates.begin(), availableSampleRates.end(), sampleRate);
 
+	if (closestIterator == availableSampleRates.end()) {
+		ERROR("Did not find sample rate in available list...this should not happen");
+		throw InvalidValue();
+	}
+
+	unsigned int closestSampleRate = *closestIterator;
 
 	INFO("Setting sample rate to closest available: " << closestSampleRate);
-
 
 	{
 		TRACE("Locking filterMutex")

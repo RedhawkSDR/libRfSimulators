@@ -83,6 +83,7 @@ private:
 	std::vector<Transmitter*> transmitters;
 	UserDataQueue *userDataQueue;
 	FIRFilter *filter;
+	std::vector<unsigned int> availableSampleRates;
 
 	boost::mutex filterMutex, noiseArrayMutex;
 
