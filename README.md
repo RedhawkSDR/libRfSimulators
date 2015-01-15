@@ -48,12 +48,6 @@ The FM RDS Simulator is initialized with a directory containing XML configuratio
 
 Required fields are FileName and CenterFrequency.  RDS data is optional and will be filled in with default values if not provided.  Call sign must be four characters and the short text cannot exceed eight characters. 
 
-Example files are provided within this git repository but are checked in as a single blob to reduce repository size.  To extract the tarball of examples:
-
-    git show ExampleFiles > ExampleFiles.tar.gz
-
-The example files contain nine example wav files.  Eight of which were pulled from [FreeSound](https://www.freesound.org/) and one is a reading from the REDHAWK SDR Manual.  All are licensed under the Creative Commons License.  There are twenty XML files, each describing an individual FM station and lastly a simple bash script to quickly generate randomly distributed stations given a directory of wav files.  See the included README and LICENSE file for additional information.
-
 ## Getting started & API Notes
 
 The RF Simulator library has a fairly simple API currently.  A factory pattern is used to instantiate the type of simulator and a user provided callback class is used for data delivery.  All RF Simulators inherit from the RfSimulator class and the provided callback class must inherit from the CallbackInterface class.  See the RfSimulator header for available methods and control.
