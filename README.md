@@ -71,3 +71,13 @@ Below is a trivial example which uses the RfSimulators namespace.
 ## Notes
 
 The FmRdsSimulator creates a processing thread for each station within the currently visible 2.28 Mhz bandwidth (even if bandwidth is set smaller).  Since each of these threads is resampling a wav file, FM modulating, encoding RDS, and upsampling to 2.28 Msps a non-trivial amount of CPU is used.  Keep this in mind when distributing the FM Stations.
+
+## Copyrights
+
+This work is protected by Copyright. Please refer to the [Copyright File](COPYRIGHT) for updated copyright information.
+Copyrights and licenses for source from gnuradio, and PiFmRds are found in their respective folders within the src folder.
+
+## License
+
+The RF Simulator Library is licensed under the GNU General Public License (GPL).
+
