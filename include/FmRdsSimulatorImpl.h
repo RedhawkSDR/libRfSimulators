@@ -103,8 +103,9 @@ private:
 	UserDataQueue *userDataQueue;
 	FIRFilter *filter;
 	std::vector<unsigned int> availableSampleRates;
+	int pi; // The puncture index;
 
-	boost::mutex filterMutex, noiseArrayMutex;
+	boost::mutex sampleRateMutex, noiseArrayMutex;
 
 };
 } // End of namespace

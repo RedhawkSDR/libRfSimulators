@@ -64,6 +64,7 @@ FmRdsSimulatorImpl::FmRdsSimulatorImpl() {
 	maxGain = 100;
 	sampleRate = MAX_OUTPUT_SAMPLE_RATE;
 	noiseSigma = 0.1;
+	pi = 0;
 
 
 	// Initialize our noise vector.  We always use the same noise vector to keep the processing down.
@@ -327,25 +328,45 @@ void FmRdsSimulatorImpl::dataGrab(const boost::system::error_code& error, boost:
 		}
 	}
 
-	// So if the max rate was 1,000 and we want a sample rate of 250
-	// the puncture rate would be 4, we would keep 1 out of every 4 samples.
-	unsigned int punctureRate = MAX_OUTPUT_SAMPLE_RATE/sampleRate;
-
 	{
-		boost::mutex::scoped_lock lock(filterMutex);
+		boost::mutex::scoped_lock lock(sampleRateMutex);
+		// So if the max rate was 1,000 and we want a sample rate of 250
+		// the puncture rate would be 4, we would keep 1 out of every 4 samples.
+		unsigned int pr = MAX_OUTPUT_SAMPLE_RATE/sampleRate;
+
 		filter->run();
+
+
+		// RHWEB-117 - Track the start index for decimation to prevent phase slip.
+		// The size of the output valarray depends on the puncture rate and the start index
+		// of the last puncture.
+
+		int newsize = (postFiltArray.size() - pi) / pr;
+
+		// The easiest way to track and adjust the puncture index is to to [skip..skip...puncture]
+		// rather than [puncture..skip..skip].  The logic just works out easier.  So the slice starts
+		// at puncture rate - puncture index - 1 (the -1 is on the pr since we index by 0)
+		std::valarray<std::complex<float> > retVec = postFiltArray[std::slice(pr-pi-1, newsize, pr)];
+
+		// The logic to determining the new pi (puncture index) is non-trivial but here is the logic:
+		// It's easier to think about if puncture index is 0.
+		// We want the size given (postFiltArray) minus our size out times the puncture rate.  So,
+		// if we were given 10 points, 0-9, punctured every third we'd end up with 3 points,
+		// [2, 5, 8] and 10 - 3*3 = 1
+		// so on our next path we should start puncturing at index 1.
+		// The new pi is taken into account by adding it to the size of the given array and the whole thing is
+		// mod pr for when it carries over.
+
+		pi = ((postFiltArray.size() + pi) - retVec.size()*pr) % pr;
+
+		// Apply gain factor
+		float linearGain = powf(10.0, gain/10.0);
+		retVec *= linearGain;
+
+
+		TRACE("Delivering " << retVec.size() << " data points to data queue.");
+		userDataQueue->deliverData(retVec);
 	}
-
-	int size = postFiltArray.size()/punctureRate;
-	std::valarray<std::complex<float> > retVec = postFiltArray[std::slice(0, size, punctureRate)];
-
-	// Apply gain factor
-	float linearGain = powf(10.0, gain/10.0);
-	retVec *= linearGain;
-
-
-	TRACE("Delivering " << retVec.size() << " data points to data queue.");
-	userDataQueue->deliverData(retVec);
 
 	TRACE("Leaving Method");
 }
@@ -573,8 +594,8 @@ void FmRdsSimulatorImpl::setSampleRate(unsigned int sampleRate) throw(InvalidVal
 	INFO("Setting sample rate to closest available: " << closestSampleRate);
 
 	{
-		TRACE("Locking filterMutex")
-		boost::mutex::scoped_lock lock(filterMutex);
+		TRACE("Locking sampleRateMutex")
+		boost::mutex::scoped_lock lock(sampleRateMutex);
 		TRACE("filterMutex Locked")
 		this->sampleRate = closestSampleRate;
 
