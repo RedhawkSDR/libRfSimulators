@@ -24,26 +24,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-#include "waveforms.h"
-
-/* Here, the first member of the struct must be a scalar to avoid a
-   warning on -Wmissing-braces with GCC < 4.8.3 
-   (bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53119)
-*/
-
-/* The RDS error-detection code generator polynomial is
-   x^10 + x^8 + x^7 + x^5 + x^4 + x^3 + x^0
-*/
-#define POLY 0x1B9
-#define POLY_DEG 10
-#define MSB_BIT 0x8000
-#define BLOCK_SIZE 16
-
-#define BITS_PER_GROUP (GROUP_LENGTH * (BLOCK_SIZE+POLY_DEG))
-#define SAMPLES_PER_BIT 192
-#define FILTER_SIZE (sizeof(waveform_biphase)/sizeof(float))
-#define SAMPLE_BUFFER_SIZE (SAMPLES_PER_BIT + FILTER_SIZE)
-
 
 uint16_t offset_words[] = {0x0FC, 0x198, 0x168, 0x1B4};
 // We don't handle offset word C' here for the sake of simplicity
@@ -69,19 +49,18 @@ uint16_t crc(uint16_t block) {
 /* Possibly generates a CT (clock time) group if the minute has just changed
    Returns 1 if the CT group was generated, 0 otherwise
 */
-int get_rds_ct_group(uint16_t *blocks) {
-    static int latest_minutes = -1;
+int get_rds_ct_group(uint16_t *blocks, struct rds_signal_info* rds_sig_info) {
 
-    // Check time
+	// Check time
     time_t now;
     struct tm *utc;
     
     now = time (NULL);
     utc = gmtime (&now);
 
-    if(utc->tm_min != latest_minutes) {
+    if(utc->tm_min != rds_sig_info->latest_minutes) {
         // Generate CT group
-        latest_minutes = utc->tm_min;
+    	rds_sig_info->latest_minutes = utc->tm_min;
         
         int l = utc->tm_mon <= 1 ? 1 : 0;
         int mjd = 14956 + utc->tm_mday + 
@@ -108,31 +87,28 @@ int get_rds_ct_group(uint16_t *blocks) {
    pattern. 'ps_state' and 'rt_state' keep track of where we are in the PS (0A) sequence
    or RT (2A) sequence, respectively.
 */
-void get_rds_group(int *buffer, struct rds_struct* rds_params) {
-    static int state = 0;
-    static int ps_state = 0;
-    static int rt_state = 0;
+void get_rds_group(int *buffer, struct rds_content_struct* rds_params, struct rds_signal_info* rds_sig_info) {
     uint16_t blocks[GROUP_LENGTH] = {rds_params->pi, 0, 0, 0};
     
     // Generate block content
-    if(! get_rds_ct_group(blocks)) { // CT (clock time) has priority on other group types
-        if(state < 4) {
-            blocks[1] = 0x0400 | ps_state;
+    if(! get_rds_ct_group(blocks, rds_sig_info)) { // CT (clock time) has priority on other group types
+        if(rds_sig_info->state < 4) {
+            blocks[1] = 0x0400 | rds_sig_info->ps_state;
             if(rds_params->ta) blocks[1] |= 0x0010;
             blocks[2] = 0xCDCD;     // no AF
-            blocks[3] = rds_params->ps[ps_state*2]<<8 | rds_params->ps[ps_state*2+1];
-            ps_state++;
-            if(ps_state >= 4) ps_state = 0;
+            blocks[3] = rds_params->ps[rds_sig_info->ps_state*2]<<8 | rds_params->ps[rds_sig_info->ps_state*2+1];
+            rds_sig_info->ps_state++;
+            if(rds_sig_info->ps_state >= 4) rds_sig_info->ps_state = 0;
         } else { // state == 5
-            blocks[1] = 0x2400 | rt_state;
-            blocks[2] = rds_params->rt[rt_state*4+0]<<8 | rds_params->rt[rt_state*4+1];
-            blocks[3] = rds_params->rt[rt_state*4+2]<<8 | rds_params->rt[rt_state*4+3];
-            rt_state++;
-            if(rt_state >= 16) rt_state = 0;
+            blocks[1] = 0x2400 | rds_sig_info->rt_state;
+            blocks[2] = rds_params->rt[rds_sig_info->rt_state*4+0]<<8 | rds_params->rt[rds_sig_info->rt_state*4+1];
+            blocks[3] = rds_params->rt[rds_sig_info->rt_state*4+2]<<8 | rds_params->rt[rds_sig_info->rt_state*4+3];
+            rds_sig_info->rt_state++;
+            if(rds_sig_info->rt_state >= 16) rds_sig_info->rt_state = 0;
         }
     
-        state++;
-        if(state >= 5) state = 0;
+        rds_sig_info->state++;
+        if(rds_sig_info->state >= 5) rds_sig_info->state = 0;
     }
     
     // Calculate the checkword for each block and emit the bits
@@ -157,75 +133,63 @@ void get_rds_group(int *buffer, struct rds_struct* rds_params) {
    envelope with a 57 kHz carrier, which is very efficient as 57 kHz is 4 times the
    sample frequency we are working at (228 kHz).
  */
-void get_rds_samples(float *buffer, int count, struct rds_struct* rds_params) {
-    static int bit_buffer[BITS_PER_GROUP];
-    static int bit_pos = BITS_PER_GROUP;
-    static float sample_buffer[SAMPLE_BUFFER_SIZE] = {0};
-    
-    static int prev_output = 0;
-    static int cur_output = 0;
-    static int cur_bit = 0;
-    static int sample_count = SAMPLES_PER_BIT;
-    static int inverting = 0;
-    static int phase = 0;
+void get_rds_samples(float *buffer, int count, struct rds_content_struct* rds_content, struct rds_signal_info * rds_signal) {
 
-    static int in_sample_index = 0;
-    static int out_sample_index = SAMPLE_BUFFER_SIZE-1;
-    int i;    
+	int i;
     for(i=0; i<count; i++) {
-        if(sample_count >= SAMPLES_PER_BIT) {
-            if(bit_pos >= BITS_PER_GROUP) {
-                get_rds_group(bit_buffer, rds_params);
-                bit_pos = 0;
+        if(rds_signal->sample_count >= SAMPLES_PER_BIT) {
+            if(rds_signal->bit_pos >= BITS_PER_GROUP) {
+                get_rds_group(rds_signal->bit_buffer, rds_content, rds_signal);
+                rds_signal->bit_pos = 0;
             }
             
             // do differential encoding
-            cur_bit = bit_buffer[bit_pos];
-            prev_output = cur_output;
-            cur_output = prev_output ^ cur_bit;
+            rds_signal->cur_bit = rds_signal->bit_buffer[rds_signal->bit_pos];
+            rds_signal->prev_output = rds_signal->cur_output;
+            rds_signal->cur_output = rds_signal->prev_output ^ rds_signal->cur_bit;
             
-            inverting = (cur_output == 1);
+            rds_signal->inverting = (rds_signal->cur_output == 1);
 
             float *src = waveform_biphase;
-            int idx = in_sample_index;
+            int idx = rds_signal->in_sample_index;
             int j;
             for(j=0; j<FILTER_SIZE; j++) {
                 float val = (*src++);
-                if(inverting) val = -val;
-                sample_buffer[idx++] += val;
+                if(rds_signal->inverting) val = -val;
+                rds_signal->sample_buffer[idx++] += val;
                 if(idx >= SAMPLE_BUFFER_SIZE) idx = 0;
             }
 
-            in_sample_index += SAMPLES_PER_BIT;
-            if(in_sample_index >= SAMPLE_BUFFER_SIZE) in_sample_index -= SAMPLE_BUFFER_SIZE;
+            rds_signal->in_sample_index += SAMPLES_PER_BIT;
+            if(rds_signal->in_sample_index >= SAMPLE_BUFFER_SIZE) rds_signal->in_sample_index -= SAMPLE_BUFFER_SIZE;
             
-            bit_pos++;
-            sample_count = 0;
+            rds_signal->bit_pos++;
+            rds_signal->sample_count = 0;
         }
         
-        float sample = sample_buffer[out_sample_index];
-        sample_buffer[out_sample_index] = 0;
-        out_sample_index++;
-        if(out_sample_index >= SAMPLE_BUFFER_SIZE) out_sample_index = 0;
+        float sample = rds_signal->sample_buffer[rds_signal->out_sample_index];
+        rds_signal->sample_buffer[rds_signal->out_sample_index] = 0;
+        rds_signal->out_sample_index++;
+        if(rds_signal->out_sample_index >= SAMPLE_BUFFER_SIZE) rds_signal->out_sample_index = 0;
         
         
         // modulate at 57 kHz
         // use phase for this
-        switch(phase) {
+        switch(rds_signal->phase) {
             case 0:
             case 2: sample = 0; break;
             case 1: break;
             case 3: sample = -sample; break;
         }
-        phase++;
-        if(phase >= 4) phase = 0;
+        rds_signal->phase++;
+        if(rds_signal->phase >= 4) rds_signal->phase = 0;
         
         *buffer++ = sample;
-        sample_count++;
+        rds_signal->sample_count++;
     }
 }
 
-void set_rds_rt(char *rt, struct rds_struct* rds_params) {
+void set_rds_rt(char *rt, struct rds_content_struct* rds_params) {
     strncpy(rds_params->rt, rt, 64);
     int i;
     for(i=0; i<64; i++) {
@@ -233,7 +197,7 @@ void set_rds_rt(char *rt, struct rds_struct* rds_params) {
     }
 }
 
-void set_rds_ps(char *ps, struct rds_struct* rds_params) {
+void set_rds_ps(char *ps, struct rds_content_struct* rds_params) {
     strncpy(rds_params->ps, ps, 8);
     int i;
     for(i=0; i<8; i++) {

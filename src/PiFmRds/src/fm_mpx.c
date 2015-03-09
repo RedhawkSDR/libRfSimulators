@@ -120,8 +120,8 @@ int fm_mpx_open(char *filename, size_t len, struct fm_mpx_struct* fm_mpx_status)
 
 // samples provided by this function are in 0..10: they need to be divided by
 // 10 after.
-int fm_mpx_get_samples(float *mpx_buffer, struct rds_struct* rds_params, struct fm_mpx_struct * fm_mpx_status) {
-    get_rds_samples(mpx_buffer, fm_mpx_status->length, rds_params);
+int fm_mpx_get_samples(float *mpx_buffer, struct rds_content_struct* rds_params, struct rds_signal_info* rds_signal, struct fm_mpx_struct * fm_mpx_status) {
+    get_rds_samples(mpx_buffer, fm_mpx_status->length, rds_params, rds_signal);
 
     if(fm_mpx_status->inf  == NULL) return 0; // if there is no audio, stop here
     int i; 

@@ -93,11 +93,11 @@ private:
 	std::vector< std::vector<float> > polyphaseFilterTaps;
 
 
-	rds_struct rds_status_struct;
+	rds_content_struct rds_content;
+	rds_signal_info rds_sig_info;
 	fm_mpx_struct fm_mpx_status_struct;
 	bool initilized;
 	FrequencyModulator fm;
-
 
 	Tuner tuner;
 	boost::mutex tunerMutex;

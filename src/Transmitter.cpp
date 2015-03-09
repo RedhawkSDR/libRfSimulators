@@ -38,7 +38,6 @@ Transmitter::Transmitter() :
 		{
 
 	TRACE("Entered Method");
-
 	centerFrequency = -1;
 
 	rdsFullText = "REDHAWK Radio, Rock the Hawk!";
@@ -63,7 +62,6 @@ Transmitter::Transmitter() :
 
 	filePath = "";
 	tunedFrequency = 0.0;
-
 
 	/**
 	 * This is a bit of a messy approach currently and should be rolled into the Redhawk DSP library.
@@ -98,6 +96,29 @@ Transmitter::Transmitter() :
 		polyphaseFilters[i] = new FIRFilter(basebandCmplx, basebandCmplx_polyPhaseout, &polyphaseFilterTaps[i][0], tmpTaps.size());
 
 	}
+
+	TRACE("Initialzing the RTL signal struct");
+	// Initialize the rds_signal info
+	rds_sig_info.bit_pos = BITS_PER_GROUP;
+
+	for (i = 0; i < SAMPLE_BUFFER_SIZE; ++i) {
+		rds_sig_info.sample_buffer[i] = 0;
+	}
+
+	rds_sig_info.prev_output = 0;
+	rds_sig_info.cur_output = 0;
+	rds_sig_info.cur_bit = 0;
+	rds_sig_info.sample_count = SAMPLES_PER_BIT;
+	rds_sig_info.inverting = 0;
+	rds_sig_info.phase = 0;
+	rds_sig_info.in_sample_index = 0;
+	rds_sig_info.out_sample_index = SAMPLE_BUFFER_SIZE-1;
+	rds_sig_info.latest_minutes = -1;
+	rds_sig_info.state = 0;
+	rds_sig_info.ps_state = 0;
+	rds_sig_info.rt_state = 0;
+
+
 	TRACE("Exiting Method");
 }
 
@@ -111,7 +132,6 @@ Transmitter::~Transmitter() {
 			delete (polyphaseFilters[i]);
 		}
 	}
-
 	TRACE("Joining up the Transmitter thread");
 	m_Thread.join();
 	TRACE("Exiting Method");
@@ -125,6 +145,7 @@ void Transmitter::setTunedFrequency(float tunedFrequency) {
 	this->tunedFrequency = tunedFrequency;
 
 	float normFc = (this->tunedFrequency - centerFrequency) / MAX_OUTPUT_SAMPLE_RATE;
+
 
 
 	{
@@ -219,9 +240,9 @@ int Transmitter::init(float centerFrequency, int numSamples) {
 		rdsShortText.resize(8);
 	}
 
-	rds_status_struct.pi = callSignToInt(rdsCallSign);
-	set_rds_ps(const_cast<char *> (rdsShortText.c_str()), &rds_status_struct);
-	set_rds_rt(const_cast<char *> (rdsFullText.c_str()), &rds_status_struct);
+	rds_content.pi = callSignToInt(rdsCallSign);
+	set_rds_ps(const_cast<char *> (rdsShortText.c_str()), &rds_content);
+	set_rds_rt(const_cast<char *> (rdsFullText.c_str()), &rds_content);
 
 	if (filePath == "") {
 		ERROR("File Path to wav file has not been set!");
@@ -268,8 +289,8 @@ int Transmitter::doWork() {
 		return 0;
 	} else {
 
-		TRACE("Receiving samples from fm_mpx_get_samples() for file: " );
-		if( fm_mpx_get_samples(&mpx_buffer[0], &rds_status_struct, &fm_mpx_status_struct) < 0 ) {
+		TRACE("Receiving samples from fm_mpx_get_samples() for file: ");
+		if( fm_mpx_get_samples(&mpx_buffer[0], &rds_content, &rds_sig_info, &fm_mpx_status_struct) < 0 ) {
 			ERROR("Error occurred adding RDS data to sound file.");
 			return -1;
 		}

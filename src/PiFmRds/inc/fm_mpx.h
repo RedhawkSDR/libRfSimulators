@@ -33,8 +33,8 @@
 #define FIR_HALF_SIZE 30
 #define FIR_SIZE (2*FIR_HALF_SIZE-1)
 
-static float carrier_38[] = {0.0, 0.8660254037844386, 0.8660254037844388, 1.2246467991473532e-16, -0.8660254037844384, -0.8660254037844386};
-static float carrier_19[] = {0.0, 0.5, 0.8660254037844386, 1.0, 0.8660254037844388, 0.5, 1.2246467991473532e-16, -0.5, -0.8660254037844384, -1.0, -0.8660254037844386, -0.5};
+static const float carrier_38[] = {0.0, 0.8660254037844386, 0.8660254037844388, 1.2246467991473532e-16, -0.8660254037844384, -0.8660254037844386};
+static const float carrier_19[] = {0.0, 0.5, 0.8660254037844386, 1.0, 0.8660254037844388, 0.5, 1.2246467991473532e-16, -0.5, -0.8660254037844384, -1.0, -0.8660254037844386, -0.5};
 
 
 
@@ -58,7 +58,7 @@ struct fm_mpx_struct {
 };
 
 extern int fm_mpx_open(char *filename, size_t len, struct fm_mpx_struct * fm_mpx_status);
-extern int fm_mpx_get_samples(float *mpx_buffer, struct rds_struct* rds_params, struct fm_mpx_struct * fm_mpx_status);
+extern int fm_mpx_get_samples(float *mpx_buffer, struct rds_content_struct* rds_params, struct rds_signal_info* rds_signal, struct fm_mpx_struct * fm_mpx_status);
 extern int fm_mpx_close(struct fm_mpx_struct * fm_mpx_status);
 
 #endif /* FM_MPX_H_ */
