@@ -94,6 +94,7 @@ void get_rds_group(int *buffer, struct rds_content_struct* rds_params, struct rd
     if(! get_rds_ct_group(blocks, rds_sig_info)) { // CT (clock time) has priority on other group types
         if(rds_sig_info->state < 4) {
             blocks[1] = 0x0400 | rds_sig_info->ps_state;
+            blocks[1] = blocks[1] | (rds_params->pty << 5);
             if(rds_params->ta) blocks[1] |= 0x0010;
             blocks[2] = 0xCDCD;     // no AF
             blocks[3] = rds_params->ps[rds_sig_info->ps_state*2]<<8 | rds_params->ps[rds_sig_info->ps_state*2+1];
@@ -101,6 +102,7 @@ void get_rds_group(int *buffer, struct rds_content_struct* rds_params, struct rd
             if(rds_sig_info->ps_state >= 4) rds_sig_info->ps_state = 0;
         } else { // state == 5
             blocks[1] = 0x2400 | rds_sig_info->rt_state;
+            blocks[1] = blocks[1] | (rds_params->pty << 5);
             blocks[2] = rds_params->rt[rds_sig_info->rt_state*4+0]<<8 | rds_params->rt[rds_sig_info->rt_state*4+1];
             blocks[3] = rds_params->rt[rds_sig_info->rt_state*4+2]<<8 | rds_params->rt[rds_sig_info->rt_state*4+3];
             rds_sig_info->rt_state++;

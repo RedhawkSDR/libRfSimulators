@@ -43,6 +43,7 @@ using namespace std;
 static string DEFAULT_RDS_CALL_SIGN = "WSDR";
 static string DEFAULT_RDS_SHORT_TEXT = "REDHAWK!";
 static string DEFAULT_RDS_FULL_TEXT = "REDHAWK Radio, Rock the Hawk! (www.redhawksdr.org)";
+#define DEFAULT_RDS_PTY 0
 
 
 #endif /* LIBFMRDSSIMULATOR_INCLUDE_SIMDEFAULTS_H_ */

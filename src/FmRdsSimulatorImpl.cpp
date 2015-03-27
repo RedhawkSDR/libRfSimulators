@@ -476,11 +476,31 @@ int FmRdsSimulatorImpl::loadCfgFile(path filePath) {
 				tx->setRdsFullText(DEFAULT_RDS_FULL_TEXT);
 			}
 
+			TRACE("Finding PTY XML element");
+			pParm = rdsRoot->FirstChildElement("PTY");
+			if (pParm) {
+				TRACE("Parsing PTY characters to value (0-32)");
+				uint16_t pty = 0;
+				try {
+					pty = atoi(pParm->GetText());
+				} catch(std::exception const & e) {
+					 ERROR("Error parsing PTY element");
+				}
+
+				TRACE("Setting PTY on Transmitter object to: " << pty);
+				tx->setProgramType(pty);
+				pParm = NULL;
+			} else {
+				TRACE("Setting default PTY");
+				tx->setProgramType(DEFAULT_RDS_PTY);
+			}
+
 		} else {
 			TRACE("RDS XML root not set, using defaults.");
 			tx->setRdsCallSign(DEFAULT_RDS_CALL_SIGN);
 			tx->setRdsShortText(DEFAULT_RDS_SHORT_TEXT);
 			tx->setRdsFullText(DEFAULT_RDS_FULL_TEXT);
+			tx->setProgramType(0);
 		}
 
 		TRACE("Initializing the Transmitter object");

@@ -50,6 +50,7 @@
 
 struct rds_content_struct {
     uint16_t pi;
+    uint16_t pty;
     int ta;
     char ps[PS_LENGTH];
     char rt[RT_LENGTH];

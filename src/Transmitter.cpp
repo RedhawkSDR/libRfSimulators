@@ -34,18 +34,16 @@
 
 Transmitter::Transmitter() :
 		fm((2 * M_PI * MAX_FREQUENCY_DEVIATION) / BASE_SAMPLE_RATE),
-		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0)
+		tuner(basebandCmplxUpSampled, basebandCmplxUpSampledTuned, 0),
+		centerFrequency(-1),
+		rdsFullText("REDHAWK Radio, Rock the Hawk!"), rdsShortText("REDHAWK!"), rdsCallSign("WSDR"),
+		initialized(false),
+		numSamples(-1),
+		filePath(""),
+		tunedFrequency(0.0)
 		{
 
 	TRACE("Entered Method");
-	centerFrequency = -1;
-
-	rdsFullText = "REDHAWK Radio, Rock the Hawk!";
-	rdsShortText = "REDHAWK!";
-	rdsCallSign = "WSDR";
-
-	numSamples = -1;
-	initilized = false;
 
 	fm_mpx_status_struct.phase_38 = 0;
 	fm_mpx_status_struct.phase_19 = 0;
@@ -59,9 +57,6 @@ Transmitter::Transmitter() :
 		fm_mpx_status_struct.fir_buffer_mono[i] = 0;
 		fm_mpx_status_struct.fir_buffer_stereo[i] = 0;
 	}
-
-	filePath = "";
-	tunedFrequency = 0.0;
 
 	/**
 	 * This is a bit of a messy approach currently and should be rolled into the Redhawk DSP library.
@@ -118,7 +113,6 @@ Transmitter::Transmitter() :
 	rds_sig_info.ps_state = 0;
 	rds_sig_info.rt_state = 0;
 
-
 	TRACE("Exiting Method");
 }
 
@@ -167,7 +161,6 @@ void Transmitter::setFilePath(path filePath) {
 path Transmitter::getFilePath() {
 	TRACE("Entered Method");
 	return this->filePath;
-	TRACE("Exited Method");
 }
 
 void Transmitter::setRdsFullText(std::string rdsFullText) {
@@ -196,10 +189,21 @@ void Transmitter::setRdsCallSign(std::string rdsCallSign) {
 	TRACE("Exited Method");
 }
 
+void Transmitter::setProgramType(uint16_t pty) {
+	TRACE("Entered Method");
+	if (pty >= 32) {
+		ERROR("Program type must be between 0 - 31.  Invalid program type supplied.");
+	} else {
+		TRACE("Setting PTY to: " << pty);
+		rds_content.pty = pty;
+	}
+	TRACE("Exited Method");
+}
+
 void Transmitter::start() {
 	TRACE("Entered Method");
 
-	if (not initilized) {
+	if (not initialized) {
 		ERROR("Transmitter asked to start but has not been initialized!  Request ignored.");
 	} else {
 		TRACE("Starting boost thread");
@@ -263,7 +267,7 @@ int Transmitter::init(float centerFrequency, int numSamples) {
 
     basebandCmplxUpSampled.resize(numSamples*10, std::complex<float>(0.0,0.0));
     basebandCmplxUpSampledTuned.resize(numSamples*10, std::complex<float>(0.0,0.0));
-    initilized = true;
+    initialized = true;
 	TRACE("Exited Method");
     return 0;
 }
@@ -364,3 +368,4 @@ std::ostream& operator<<(std::ostream &strm, const Transmitter &tx) {
 		  << "RDS Short text: " << tx.rdsShortText << std::endl
 		  << "RDS Full text: " << tx.rdsFullText << std::endl;
 }
+

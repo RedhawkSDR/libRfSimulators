@@ -58,6 +58,7 @@ public:
 	void setRdsFullText(std::string fullText);
 	void setRdsShortText(std::string shortText);
 	void setRdsCallSign(std::string callSign);
+	void setProgramType(uint16_t pty);
 	virtual ~Transmitter();
 	std::valarray< std::complex<float> >& getData();
 	friend std::ostream& operator<<(std::ostream &strm, const Transmitter &tx);
@@ -96,7 +97,7 @@ private:
 	rds_content_struct rds_content;
 	rds_signal_info rds_sig_info;
 	fm_mpx_struct fm_mpx_status_struct;
-	bool initilized;
+	bool initialized;
 	FrequencyModulator fm;
 
 	Tuner tuner;
