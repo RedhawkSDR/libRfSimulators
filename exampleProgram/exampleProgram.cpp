@@ -32,6 +32,7 @@
  ============================================================================
  */
 
+#include <unistd.h>
 #include "SampleCallback.h"
 #include "RfSimulatorFactory.h"
 #include "RfSimulator.h"

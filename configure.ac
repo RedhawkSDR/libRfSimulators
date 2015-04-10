@@ -21,9 +21,10 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
 AC_INIT(librfsimulators, 1.0)
+AC_CANONICAL_SYSTEM
+AM_INIT_AUTOMAKE([subdir-objects])
 AC_PROG_CC
 AC_PROG_CXX
-AC_CANONICAL_SYSTEM
 
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
