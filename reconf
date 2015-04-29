@@ -4,20 +4,6 @@
 # source distribution.
 # 
 
-rm -f config.cache
+# All that is necessary is the standard autoreconf -i 
 
-# Setup the libtool stuff
-if [ -e /usr/local/share/aclocal/libtool.m4 ]; then
-    /bin/cp /usr/local/share/aclocal/libtool.m4 aclocal.d/acinclude.m4
-elif [ -e /usr/share/aclocal/libtool.m4 ]; then
-    /bin/cp /usr/share/aclocal/libtool.m4 acinclude.m4
-fi
-libtoolize --force --automake
-
-# Search in expected locations for the OSSIE acincludes
-BOOST_AC_INCLUDE=${PWD}/local_ac_includes
-
-aclocal -I ${BOOST_AC_INCLUDE=}
-
-autoconf
-automake --foreign --add-missing
+autoreconf -i
