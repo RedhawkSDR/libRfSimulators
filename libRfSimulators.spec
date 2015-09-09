@@ -25,7 +25,7 @@ Summary:        RF Simulator Library - FM RDS Simulator.
 Group:          REDHAWK
 License:        GPLv3
 Source0:        %{name}-%{version}.tar.gz
-Source1:	libFmRdsSimulatorExamples.tar.gz
+Source1:        libFmRdsSimulatorExamples.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  autoconf automake libtool gcc-c++
