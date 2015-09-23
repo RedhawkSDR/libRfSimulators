@@ -27,4 +27,5 @@ m4
 !m4/ax_boost_serialization.m4
 !m4/ax_boost_system.m4
 !m4/ax_boost_thread.m4
+librfsimulators.pc
 

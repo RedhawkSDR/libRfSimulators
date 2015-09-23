@@ -87,3 +87,4 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/*.so
 %{_libdir}/*.la
 %{_libdir}/*.a
+%{_libdir}/pkgconfig/librfsimulators.pc

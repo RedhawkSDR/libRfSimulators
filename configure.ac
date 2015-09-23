@@ -53,5 +53,6 @@ AC_PROG_LIBTOOL
 AC_CONFIG_FILES(Makefile
                 exampleProgram/Makefile
                 src/Makefile
-                include/Makefile)
+                include/Makefile
+                librfsimulators.pc)
 AC_OUTPUT

@@ -19,5 +19,8 @@
 #
 
 ACLOCAL_AMFLAGS = -I m4
+
+pkgconfigdir = $(libdir)/pkgconfig
 pkgincludedir=$includedir/RfSimulators
+nodist_pkgconfig_DATA = librfsimulators.pc
 SUBDIRS=src include exampleProgram
