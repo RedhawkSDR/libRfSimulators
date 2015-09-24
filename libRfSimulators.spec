@@ -19,7 +19,7 @@
 #
 Name:           libRfSimulators
 Version:        1.1.0
-Release:        0%{?dist}
+Release:        1%{?dist}
 Summary:        RF Simulator Library - FM RDS Simulator.
 
 Group:          REDHAWK
