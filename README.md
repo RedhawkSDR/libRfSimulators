@@ -23,7 +23,10 @@ Additional Build Time Dependencies
     make -j
     sudo make install
 
-See details below regarding required configuration files.
+Notes:
+
+* You may need to modify the `LD_LIBRARY_PATH` environment variable, as is indicated in the output of the final installation step (`sudo make install`).
+* See details below regarding required configuration files.
 
 # The FM RDS Simulator
 
