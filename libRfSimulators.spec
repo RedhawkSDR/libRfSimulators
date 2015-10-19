@@ -35,10 +35,6 @@ BuildRequires:  libsndfile-devel >= 1.0
 BuildRequires:  log4cxx-devel >= 0.10.0
 BuildRequires:  fftw-devel >= 3.0.0
 
-Requires:  	libsndfile >= 1.0
-Requires:	boost >= 1.41
-Requires:	log4cxx >= 0.10.0
-Requires:	fftw >= 3.0.0
 %description
 RF Simulator Library %{name}
  * Commit: __REVISION__
@@ -48,11 +44,11 @@ RF Simulator Library %{name}
 Summary:        %{name} development package
 Group:          REDHAWK
 Requires:       %{name} = %{version}
-%if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 Requires:       boost-devel >= 1.41
-%else
-Requires:       boost141-devel
-%endif
+Requires:       tinyxml-devel >= 2.6.1
+Requires:       libsndfile-devel >= 1.0
+Requires:       log4cxx-devel >= 0.10.0
+Requires:       fftw-devel >= 3.0.0
 
 %description devel
 Development headers and libraries for %{name}

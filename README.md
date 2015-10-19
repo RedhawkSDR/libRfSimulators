@@ -26,6 +26,7 @@ Additional Build Time Dependencies
 Notes:
 
 * You may need to modify the `LD_LIBRARY_PATH` environment variable, as is indicated in the output of the final installation step (`sudo make install`).
+* Development packages of the dependencies are needed when building from source.
 * See details below regarding required configuration files.
 
 # The FM RDS Simulator
