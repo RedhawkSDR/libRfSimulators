@@ -33,6 +33,44 @@ function HELP {
     exit 1
 }
 
+#Function to get relative path needed for xml files
+function get_relative_path {
+    source=$1
+    target=$2
+
+    common_part=$source # for now
+    rel_path="" # for now
+
+    while [[ "${target#$common_part}" == "${target}" ]]; do
+        # no match, means that candidate common part is not correct
+        # go up one level (reduce common part)
+        common_part="$(dirname $common_part)"
+        # and record that we went back, with correct / handling
+        if [[ -z $rel_path ]]; then
+            rel_path=".."
+        else
+            rel_path="../$rel_path"
+        fi
+    done
+
+    if [[ $common_part == "/" ]]; then
+        # special case for root (no common path)
+        rel_path="$rel_path/"
+    fi
+
+    # since we now have identified the common part,
+    # compute the non-common part
+    forward_part="${target#$common_part}"
+
+    # and now stick all parts together
+    if [[ -n $rel_path ]] && [[ -n $forward_part ]]; then
+        rel_path="$rel_path$forward_part"
+    elif [[ -n $forward_part ]]; then
+        # extra slash removal
+        rel_path="${forward_part:1}"
+    fi
+}
+
 #Parse options
 while getopts ":l:u:n:i:o:h" opt; do
     case $opt in
@@ -123,11 +161,13 @@ for freq in $freq_list; do
 # Readjust for above, adding one to get on odd stations
 freq=$(($freq * 4 + 1))
 pty=$[ 1 + $[ RANDOM % 31 ]]
+get_relative_path $xml_path ${file_list[$index]}
+#  <FileName>${file_list[$index]}</FileName>
 
 cat << EOF > ${xml_path}Example$freq.xml
 <TxProps>
-  <FileName>${file_list[$index]}</FileName>
   <CenterFrequency>${freq}00000</CenterFrequency>
+  <FileName>${rel_path}</FileName>
   <RDS>
     <CallSign>WSDR</CallSign>
     <ShortText>${freq%?}.${freq: -1} FM</ShortText>
