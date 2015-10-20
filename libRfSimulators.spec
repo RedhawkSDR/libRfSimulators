@@ -67,8 +67,8 @@ make %{?_smp_mflags}
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/%{_datarootdir}
-tar -xzvf %{_sourcedir}/libFmRdsSimulatorExamples.tar.gz -C $RPM_BUILD_ROOT/%{_datarootdir}
+mkdir -p $RPM_BUILD_ROOT/%{_datadir}
+tar -xzvf %{_sourcedir}/libFmRdsSimulatorExamples.tar.gz -C $RPM_BUILD_ROOT/%{_datadir}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -76,7 +76,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %doc AUTHORS COPYING
 %{_libdir}/*.so.*
-%{_datarootdir}/*
+%{_datadir}/*
 
 %files devel
 %{_includedir}/*
