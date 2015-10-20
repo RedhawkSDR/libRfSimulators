@@ -50,7 +50,7 @@ The FM RDS Simulator is initialized with a directory containing XML configuratio
       </RDS>
     </TxProps>
 
-Required fields are *FileName* and *CenterFrequency*. *FileName* is the full or relative path to the WAV audio file and *CenterFrequency* is specified in whole (integer) Hertz. *RDS* data is optional and will be filled in with default values if not provided.  *CallSign* must be four characters and the *ShortText* cannot exceed eight characters. 
+Required fields are *FileName* and *CenterFrequency*. *FileName* is the relative path to the WAV audio file and *CenterFrequency* is specified in whole (integer) Hertz. *RDS* data is optional and will be filled in with default values if not provided.  *CallSign* must be four characters and the *ShortText* cannot exceed eight characters. 
 
 A script *generateConfigurationFiles.sh* is included to help automate the generation of configuration files. Usage of the script requires a directory with one or more audio WAV files (with .wav extension) that will be accessible to the FM RDS Simulator.
 
