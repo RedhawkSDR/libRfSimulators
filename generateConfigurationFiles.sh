@@ -68,16 +68,14 @@ while getopts ":l:u:n:i:o:h" opt; do
 done
 shift $((OPTIND-1))  #This tells getopts to move on to the next argument.
 
-echo "Generating ${BOLD}$num_stations${NORM} stations between ${BOLD}${min_freq%?}.${min_freq: -1}${NORM} MHz and ${BOLD}${max_freq%?}.${max_freq: -1}${NORM} MHz"
-
-
-#Check for path to *.wav files
+#Check for additional command line arguments
 if [ $# -ne 0 ]; then
     echo -e \\n"Too many command line arguments."
     echo -e "Use ${BOLD}$SCRIPT -h${NORM} to see the help documentation."\\n
     exit 4
 fi
-# check to make sure the input directory exists
+
+#Check to make sure the input directory exists
 if [ ! -d "${wav_path}" ]; then
     echo -e \\n"Invalid input path: ${BOLD}${wav_path}${NORM} does not exist."
     echo -e "Use ${BOLD}$SCRIPT -h${NORM} to see the help documentation."\\n
@@ -106,8 +104,9 @@ if ! mkdir -p $xml_path; then
     exit 8
 fi
 
-echo "Using ${BOLD}${num_files}${NORM} *.wav files located in ${BOLD}${wav_path}${NORM}"
-echo "Generating configuration files located in ${BOLD}${xml_path}${NORM}"
+echo "Generating ${BOLD}$num_stations${NORM} stations between ${BOLD}${min_freq%?}.${min_freq: -1}${NORM} MHz and ${BOLD}${max_freq%?}.${max_freq: -1}${NORM} MHz"
+echo "Using ${BOLD}${num_files}${NORM} *.wav input files located in ${BOLD}${wav_path}${NORM}"
+echo "Output configuration files located in ${BOLD}${xml_path}${NORM}"
 
 
 #####################################################################

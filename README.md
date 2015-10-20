@@ -37,7 +37,7 @@ The simulator will provide complex samples at a maximum sample rate of 2.28 Msps
 
 ## Configuration Files
 
-The FM RDS Simulator is initialized with a directory containing XML configuration files. The default and recommended location for these files is /usr/share/libFmRdsSimulator/examples.  The configuration files must follow the following format: 
+The FM RDS Simulator is initialized with a directory containing XML configuration files. The default and recommended location for these files is ```/usr/share/libFmRdsSimulator/examples```.  The configuration files must follow the following format: 
 
 
     <TxProps>
@@ -50,7 +50,9 @@ The FM RDS Simulator is initialized with a directory containing XML configuratio
       </RDS>
     </TxProps>
 
-Required fields are FileName and CenterFrequency. FileName is the relative path to the WAV audio file and CenterFrequency is specified in whole (integer) Hertz. RDS data is optional and will be filled in with default values if not provided.  Call sign must be four characters and the short text cannot exceed eight characters. 
+Required fields are *FileName* and *CenterFrequency*. *FileName* is the full or relative path to the WAV audio file and *CenterFrequency* is specified in whole (integer) Hertz. *RDS* data is optional and will be filled in with default values if not provided.  *CallSign* must be four characters and the *ShortText* cannot exceed eight characters. 
+
+A script *generateConfigurationFiles.sh* is included to help automate the generation of configuration files. Usage of the script requires a directory with one or more audio WAV files (with .wav extension) that will be accessible to the FM RDS Simulator.
 
 
 ## Getting started & API Notes
