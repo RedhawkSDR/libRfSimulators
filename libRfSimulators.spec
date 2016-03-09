@@ -74,7 +74,6 @@ tar -xzvf %{_sourcedir}/libFmRdsSimulatorExamples.tar.gz -C $RPM_BUILD_ROOT/%{_d
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%doc AUTHORS COPYING
 %{_libdir}/*.so.*
 %{_datadir}/*
 
