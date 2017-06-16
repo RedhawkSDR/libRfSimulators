@@ -24,11 +24,11 @@ if [ "$1" = "rpm" ]; then
     if [ -e libRfSimulators.spec ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/libRfSimulators-1.1.0
-        tar czf ${tmpdir}/libRfSimulators-1.1.0.tar.gz --exclude=".git" -C ${tmpdir} libRfSimulators-1.1.0
+        cp -r ${mydir} ${tmpdir}/libRfSimulators-1.1.1
+        tar czf ${tmpdir}/libRfSimulators-1.1.1.tar.gz --exclude=".git" -C ${tmpdir} libRfSimulators-1.1.1
         git show ExampleFiles > ${tmpdir}/libFmRdsSimulatorExamples.tar.gz
         echo `ls ${tmpdir}`
-        rpmbuild -ta ${tmpdir}/libRfSimulators-1.1.0.tar.gz
+        rpmbuild -ta ${tmpdir}/libRfSimulators-1.1.1.tar.gz
         echo "1"
         rm -rf $tmpdir
     else

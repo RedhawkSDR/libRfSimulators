@@ -18,8 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 Name:           libRfSimulators
-Version:        1.1.0
-Release:        4%{?dist}
+Version:        1.1.1
+Release:        1%{?dist}
 Summary:        RF Simulator Library - FM RDS Simulator.
 
 Group:          REDHAWK
