@@ -23,7 +23,8 @@
     - docker build -t $name:latest-$dist-$arch --build-arg "project=$CI_PROJECT_NAME"
                                                --build-arg "rpm_release=$rpm_release"
                                                --build-arg "spec_file=$CI_PROJECT_NAME.spec"
-                                               --build-arg "arch=$arch" .
+                                               --build-arg "arch=$arch"
+                                               --build-arg "other_repos=$yum_repo_url/redhawk-dependencies/$dist/$arch" .
     - id=$(docker create $name:latest-$dist-$arch)
     - docker cp $id:/root/rpmbuild/RPMS/ output/
     - docker rm -f $id
