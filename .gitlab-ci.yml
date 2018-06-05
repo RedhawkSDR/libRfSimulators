@@ -1,30 +1,30 @@
+variables:
+  other_repos: $s3_repo_url/redhawk-dependencies/log4cxx/yum/0.10.0-13/$dist/$arch
 .package: &package
   image: ${docker_registry}utils/docker:latest-rpm
   stage: build
   tags:
-    - dind
+    - ca
+    - docker
   script:
-    # Ensure newest version of FROM image
-    - docker pull ${docker_registry}rpmbuild:${dist}-${arch}-onbuild
     # Use RPM release from specfile if this is a tag
     - safe_version=$(echo ${short_version} | tr -d -)
     - if [ -z "$CI_COMMIT_TAG" ]; then
-        redhawk_version=${latest_version}
         rpm_release="0.$CI_PIPELINE_ID${safe_version}";
       else
-        redhawk_version=${release_version}
         rpm_release="`rpm --query --queryformat "%{release}\n" --specfile $CI_PROJECT_NAME.spec | awk -F"." "{print $1}"`${safe_version}";
       fi
-    - other_repos=$yum_repo_url/redhawk/$redhawk_version/$dist/$arch
-    - docker pull ${docker_registry}rpmbuild:$dist-$arch-onbuild
     - printf "FROM ${docker_registry}rpmbuild:$dist-$arch-onbuild" > Dockerfile
     - name=$(echo $CI_PROJECT_NAME| tr '[:upper:]' '[:lower:]')
     - git show ExampleFiles > libFmRdsSimulatorExamples.tar.gz
-    - docker build -t $name:latest-$dist-$arch --build-arg "project=$CI_PROJECT_NAME"
-                                               --build-arg "rpm_release=$rpm_release"
-                                               --build-arg "spec_file=$CI_PROJECT_NAME.spec"
-                                               --build-arg "arch=$arch"
-                                               --build-arg "other_repos=$yum_repo_url/redhawk-dependencies/$dist/$arch" .
+    - printf "FROM ${docker_registry}${rpmbuild_repository}rpmbuild:$dist-$arch-onbuild" > Dockerfile
+    - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
+    - docker image build --pull
+                         -t $name:latest-$dist-$arch --build-arg "project=$CI_PROJECT_NAME"
+                         --build-arg "rpm_release=$rpm_release"
+                         --build-arg "spec_file=$CI_PROJECT_NAME.spec"
+                         --build-arg "arch=$arch"
+                         --build-arg "other_repos=$other_repos" .
     - id=$(docker create $name:latest-$dist-$arch)
     - docker cp $id:/root/rpmbuild/RPMS/ output/
     - docker rm -f $id
@@ -32,6 +32,17 @@
     paths:
       - output/*/*.rpm
     expire_in: 2 days
+  except:
+    - master
+    - /^.*-external$/
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+package:el7:
+  variables:
+    dist: el7
+    arch: x86_64
+    other_repos: ""
+  <<: *package
 
 package:el6:
   variables:
@@ -45,19 +56,53 @@ package:el6-i386:
     arch: i686
   <<: *package
 
-package:el7:
-  variables:
-    dist: el7
-    arch: x86_64
-  <<: *package
-
 deploy:
-  image: centos:7
+  image: ${docker_registry}centos:7
   stage: deploy
   dependencies: []
   script:
     - if [ -n "$jenkins_url" ]; then
         curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-$CI_COMMIT_REF_NAME/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
       fi
-  only:
-    - branches
+  except:
+    - master
+    - /^.*-external$/
+    - /^(\d+\.)?(\d+)?(\.\d+)$/
+
+.s3: &s3
+  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  stage: deploy
+  tags:
+    - s3
+  script:
+    - /usr/bin/s3cmd sync s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/rh${short_version}/$dist/$arch .
+    - mkdir -p $arch
+    - for file in `find output -name *.rpm`; do
+        cp $file $arch;
+      done
+    - repomanage --keep=2 --old $arch| xargs rm -f; createrepo --update $arch
+    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/rh${short_version}/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/rh${short_version}/$dist --acl-public --recursive || true
+
+deploy-el7:
+  variables:
+    dist: el7
+    arch: x86_64
+  dependencies:
+    - package:el7
+  <<: *s3
+
+deploy-el6:
+  variables:
+    dist: el6
+    arch: x86_64
+  dependencies:
+    - package:el6
+  <<: *s3
+
+deploy-el6-i386:
+  variables:
+    dist: el6
+    arch: i686
+  dependencies:
+    - package:el6-i386
+  <<: *s3
