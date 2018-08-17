@@ -52,6 +52,8 @@ Requires:       fftw-devel >= 3.0.0
 
 %description devel
 Development headers and libraries for %{name}
+ * Commit: __REVISION__
+ * Source Date/Time: __DATETIME__
 
 
 %prep

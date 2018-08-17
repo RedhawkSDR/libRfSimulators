@@ -7,6 +7,9 @@ variables:
     - ca
     - docker
   script:
+    - datetime=$(git show -s --format=%ci ${CI_COMMIT_SHA})
+    - sed -i -e "s/__REVISION__/${CI_COMMIT_SHA}/" $CI_PROJECT_NAME.spec
+    - sed -i -e "s/__DATETIME__/${datetime}/" $CI_PROJECT_NAME.spec
     # Use RPM release from specfile if this is a tag
     - safe_version=$(echo ${short_version} | tr -d -)
     - if [ -z "$CI_COMMIT_TAG" ]; then
@@ -28,6 +31,7 @@ variables:
     - id=$(docker create $name:latest-$dist-$arch)
     - docker cp $id:/root/rpmbuild/RPMS/ output/
     - docker rm -f $id
+    - rpm -qip output/*/*.rpm
   artifacts:
     paths:
       - output/*/*.rpm
