@@ -1,33 +1,31 @@
-variables:
-  other_repos: $s3_repo_url/redhawk-dependencies/log4cxx/yum/0.10.0-13/$dist/$arch
 .package: &package
-  image: ${docker_registry}utils/docker:latest-rpm
+  image: ${docker_registry}toa/docker:latest-rpm
   stage: build
   tags:
-    - ca
     - docker
+    - redhawk
   script:
     - datetime=$(git show -s --format=%ci ${CI_COMMIT_SHA})
-    - sed -i -e "s/__REVISION__/${CI_COMMIT_SHA}/" $CI_PROJECT_NAME.spec
-    - sed -i -e "s/__DATETIME__/${datetime}/" $CI_PROJECT_NAME.spec
+    - sed -i -e "s/__REVISION__/${CI_COMMIT_SHA}/" $PROJECT_NAME.spec
+    - sed -i -e "s/__DATETIME__/${datetime}/" $PROJECT_NAME.spec
     # Use RPM release from specfile if this is a tag
     - safe_version=$(echo ${short_version} | tr -d -)
     - if [ -z "$CI_COMMIT_TAG" ]; then
         rpm_release="0.$CI_PIPELINE_ID${safe_version}";
       else
-        rpm_release="`rpm --query --queryformat "%{release}\n" --specfile $CI_PROJECT_NAME.spec | awk -F"." "{print $1}"`${safe_version}";
+        rpm_release="`rpm --query --queryformat "%{release}\n" --specfile $PROJECT_NAME.spec | awk -F"." "{print $1}"`${safe_version}";
       fi
-    - printf "FROM ${docker_registry}rpmbuild:$dist-$arch-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}toa/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     - name=$(echo $CI_PROJECT_NAME| tr '[:upper:]' '[:lower:]')
-    - git show ExampleFiles > libFmRdsSimulatorExamples.tar.gz
-    - printf "FROM ${docker_registry}${rpmbuild_repository}rpmbuild:$dist-$arch-onbuild" > Dockerfile
+    - wget --no-check-certificate ${nexus_repo_url}/libFmRdsSimulatorExamples/libFmRdsSimulatorExamples/libFmRdsSimulatorExamples.tar.gz
+    - printf "FROM ${docker_registry}${rpmbuild_repository}toa/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker image build --pull
-                         -t $name:latest-$dist-$arch --build-arg "project=$CI_PROJECT_NAME"
+                         -t $name:latest-$dist-$arch 
+                         --build-arg "project=$CI_PROJECT_NAME"
                          --build-arg "rpm_release=$rpm_release"
-                         --build-arg "spec_file=$CI_PROJECT_NAME.spec"
-                         --build-arg "arch=$arch"
-                         --build-arg "other_repos=$other_repos" .
+                         --build-arg "spec_file=$PROJECT_NAME.spec"
+                         --build-arg "arch=$arch" .
     - id=$(docker create $name:latest-$dist-$arch)
     - docker cp $id:/root/rpmbuild/RPMS/ output/
     - docker rm -f $id
@@ -45,47 +43,24 @@ package:el7:
   variables:
     dist: el7
     arch: x86_64
-    other_repos: ""
+    PROJECT_NAME: libRfSimulators
   <<: *package
 
-package:el6:
-  variables:
-    dist: el6
-    arch: x86_64
-  <<: *package
-
-package:el6-i386:
-  variables:
-    dist: el6
-    arch: i686
-  <<: *package
-
-deploy:
-  image: ${docker_registry}centos:7
-  stage: deploy
-  dependencies: []
-  script:
-    - if [ -n "$jenkins_url" ]; then
-        curl --insecure -X POST $jenkins_url/job/$CI_PROJECT_NAMESPACE/job/$CI_PROJECT_NAME-$CI_COMMIT_REF_NAME/buildWithParameters?pipeline_id=$CI_PIPELINE_ID --user $jenkins_user:$jenkins_api_token;
-      fi
-  except:
-    - master
-    - /^.*-external$/
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
 
 .s3: &s3
-  image: ${docker_registry}utils/s3cmd:el6-createrepo
+  image: ${docker_registry}toa/rpmbuild:$dist-$arch
   stage: deploy
   tags:
-    - s3
+    - docker
+    - redhawk
   script:
-    - /usr/bin/s3cmd sync s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/$arch .
+    - /usr/bin/s3cmd sync s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/$arch .
     - mkdir -p $arch
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
     - repomanage --keep=2 --old $arch| xargs rm -f; createrepo --update $arch
-    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/  && s3cmd setacl -v s3://$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist --acl-public --recursive || true
+    - /usr/bin/s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/  
 
 deploy-el7:
   variables:
@@ -95,18 +70,3 @@ deploy-el7:
     - package:el7
   <<: *s3
 
-deploy-el6:
-  variables:
-    dist: el6
-    arch: x86_64
-  dependencies:
-    - package:el6
-  <<: *s3
-
-deploy-el6-i386:
-  variables:
-    dist: el6
-    arch: i686
-  dependencies:
-    - package:el6-i386
-  <<: *s3
