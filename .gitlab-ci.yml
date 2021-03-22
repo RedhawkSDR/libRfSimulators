@@ -1,5 +1,5 @@
 .package: &package
-  image: ${docker_registry}toa/docker:latest-rpm
+  image: ${docker_registry}redhawk/alpine-dockerd-plus-utils
   stage: build
   tags:
     - docker
@@ -15,10 +15,10 @@
       else
         rpm_release="`rpm --query --queryformat "%{release}\n" --specfile $PROJECT_NAME.spec | awk -F"." "{print $1}"`${safe_version}";
       fi
-    - printf "FROM ${docker_registry}toa/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     - name=$(echo $CI_PROJECT_NAME| tr '[:upper:]' '[:lower:]')
     - wget --no-check-certificate ${nexus_repo_url}/libFmRdsSimulatorExamples/libFmRdsSimulatorExamples/libFmRdsSimulatorExamples.tar.gz
-    - printf "FROM ${docker_registry}${rpmbuild_repository}toa/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}${rpmbuild_repository}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     - docker login ${docker_registry} -u ${docker_user} -p ${docker_password}
     - docker image build --pull
                          -t $name:latest-$dist-$arch 
@@ -48,7 +48,7 @@ package:el7:
 
 
 .s3: &s3
-  image: ${docker_registry}toa/rpmbuild:$dist-$arch
+  image: ${docker_registry}redhawk/rpmbuild:$dist-$arch
   stage: deploy
   tags:
     - docker
