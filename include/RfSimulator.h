@@ -46,6 +46,8 @@ class RfSimulator
 {
 
 public:
+	virtual ~RfSimulator() {};
+
 	virtual int init(std::string cfgFilePath, CallbackInterface * userClass, LogLevel level) = 0;
 
 	virtual void setCenterFrequencyRange(float freqMin, float freqMax) = 0;
